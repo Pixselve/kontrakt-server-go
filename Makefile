@@ -10,3 +10,6 @@ deploy: clean build
 
 generateResolvers:
 	go run github.com/99designs/gqlgen generate
+
+generatePrisma:
+	go run github.com/prisma/prisma-client-go generate
