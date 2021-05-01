@@ -1,0 +1,19 @@
+service: kontrakt-server
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: eu-west-3
+  lambdaHashingVersion: 20201221
+
+package:
+  patterns:
+    - "!./**"
+    - ./bin/**
+
+functions:
+  graphql:
+    handler: bin/server
+    events:
+      - http: ANY /{proxy+}
+      - http: ANY /

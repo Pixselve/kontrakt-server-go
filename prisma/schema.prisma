@@ -1,0 +1,81 @@
+datasource db {
+    // could be postgresql or mysql
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator db {
+    provider = "go run github.com/prisma/prisma-client-go"
+}
+
+model Contract {
+  archived Boolean  @default(false)
+  end      DateTime @db.Date
+  id       Int      @id @default(autoincrement())
+  name     String
+  hexColor String   @unique
+  start    DateTime @db.Date
+  skills   Skill[]
+  groups   Group[]  @relation("GroupToContract", references: [id])
+}
+
+model Group {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  contracts Contract[] @relation("GroupToContract", references: [id])
+  students  Student[]  @relation("StudentToGroup", references: [ownerID])
+}
+
+model Skill {
+  contractId    Int
+  id            Int            @id @default(autoincrement())
+  name          String
+  contract      Contract       @relation(fields: [contractId], references: [id])
+  studentSkills StudentSkill[]
+}
+
+model StudentSkill {
+  skillID   Int
+  studentID String
+  mark      Mark
+  skill     Skill   @relation(fields: [skillID], references: [id])
+  student   Student @relation(fields: [studentID], references: [ownerID])
+
+  @@id([studentID, skillID])
+}
+
+model Student {
+  owner         User           @relation(fields: [ownerID], references: [username])
+  ownerID       String         @id
+  firstName     String
+  lastName      String
+  studentSkills StudentSkill[]
+  groups        Group[]        @relation("StudentToGroup", references: [id])
+}
+
+model Teacher {
+  owner     User   @relation(fields: [ownerID], references: [username])
+  ownerID   String @id
+  firstName String
+  lastName  String
+}
+
+model User {
+  username String    @id
+  password String
+  role     Role
+  Student  Student[]
+  Teacher  Teacher[]
+}
+
+enum Role {
+  TEACHER
+  STUDENT
+  ADMIN
+}
+
+enum Mark {
+  TODO
+  GOOD
+  BAD
+}
