@@ -3,66 +3,66 @@
 # https://gqlgen.com/getting-started/
 
 directive @hasRole(role: Role!) on FIELD_DEFINITION
-directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
-    | FIELD_DEFINITION
+directive @goField(
+    forceResolver: Boolean
+    name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
 type Contract {
-    archived :Boolean! @hasRole(role: TEACHER)
-    end      :String!
-    id       :Int!
-    name     :String!
-    hexColor :String!
-    start    :String!
-    skills   :[Skill!]! @goField(forceResolver: true)
-    groups   :[Group!]!
+    archived: Boolean! @hasRole(role: TEACHER)
+    end: String!
+    id: Int!
+    name: String!
+    hexColor: String!
+    start: String!
+    skills: [Skill!]! @goField(forceResolver: true)
+    groups: [Group!]!
 }
 
 type Group {
-    id        :Int!
-    name      :String!
-    contracts :[Contract!]!
-    students  :[Student!]!
+    id: Int!
+    name: String!
+    contracts: [Contract!]!
+    students: [Student!]!
 }
 
 type Skill {
-    contractId    :Int!
-    id            :Int!
-    name          :String!
-    contract      :Contract!
-    studentSkills :[StudentSkill!]!
+    contractId: Int!
+    id: Int!
+    name: String!
+    contract: Contract!
+    studentSkills: [StudentSkill!]!
 }
 
 type StudentSkill {
-    skillID   :Int!
-    studentID :String!
-    mark      :Mark!
-    skill     :Skill!
-    student   :Student!
-
+    skillID: Int!
+    studentID: String!
+    mark: Mark!
+    skill: Skill!
+    student: Student!
 }
 
 type Student {
-    owner        : User!
-    ownerID       :String!
-    firstName     :String!
-    lastName     : String!
-    studentSkills :[StudentSkill!]!
-    groups        :[Group!]!
+    owner: User!
+    ownerUsername: String!
+    firstName: String!
+    lastName: String!
+    studentSkills: [StudentSkill!]!
+    groups: [Group!]!
 }
 
 type Teacher {
-    owner     : User!
-    ownerID   : String!
-    firstName : String!
-    lastName  : String!
+    owner: User!
+    ownerUsername: String!
+    firstName: String!
+    lastName: String!
 }
 
 type User {
-    username :String!
-    password :String!
-    role     :Role!
-    Student  :[Student!]!
-    Teacher  :[Teacher!]!
+    username: String!
+    role: Role!
+    student: [Student!]!
+    teacher: [Teacher!]!
 }
 
 enum Role {
@@ -78,5 +78,20 @@ enum Mark {
 }
 
 type Query {
-    contracts: [Contract!]!
+    contracts(groupIds: [Int!]): [Contract!]!
+    groups: [Group!]!
+    marks: [Mark!]!
+    student(ownerUsername: String!): Student!
+    contract(id: Int!): Contract!
+    students: [Student!]!
+    teachers: [Teacher!]!
+    me: User!
+}
+type Mutation {
+    login(username: String!, password: String!): AuthPayload!
+}
+
+type AuthPayload {
+    token: String!
+    user: User!
 }

@@ -8,6 +8,11 @@ import (
 	"strconv"
 )
 
+type AuthPayload struct {
+	Token string `json:"token"`
+	User  *User  `json:"user"`
+}
+
 type Contract struct {
 	Archived bool     `json:"archived"`
 	End      string   `json:"end"`
@@ -36,7 +41,7 @@ type Skill struct {
 
 type Student struct {
 	Owner         *User           `json:"owner"`
-	OwnerID       string          `json:"ownerID"`
+	OwnerUsername string          `json:"ownerUsername"`
 	FirstName     string          `json:"firstName"`
 	LastName      string          `json:"lastName"`
 	StudentSkills []*StudentSkill `json:"studentSkills"`
@@ -52,18 +57,17 @@ type StudentSkill struct {
 }
 
 type Teacher struct {
-	Owner     *User  `json:"owner"`
-	OwnerID   string `json:"ownerID"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
+	Owner         *User  `json:"owner"`
+	OwnerUsername string `json:"ownerUsername"`
+	FirstName     string `json:"firstName"`
+	LastName      string `json:"lastName"`
 }
 
 type User struct {
 	Username string     `json:"username"`
-	Password string     `json:"password"`
 	Role     Role       `json:"role"`
-	Student  []*Student `json:"Student"`
-	Teacher  []*Teacher `json:"Teacher"`
+	Student  []*Student `json:"student"`
+	Teacher  []*Teacher `json:"teacher"`
 }
 
 type Mark string
