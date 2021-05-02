@@ -10,6 +10,7 @@ import (
 	"kontrakt-server/graph/generated"
 	"kontrakt-server/graph/model"
 	"kontrakt-server/prisma/db"
+	"kontrakt-server/utils"
 	"log"
 	"net/http"
 	"os"
@@ -99,8 +100,6 @@ func Middleware(prisma *db.PrismaClient) func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString := r.Header.Get("Authorization")
 
-
-
 			// Allow unauthenticated users in
 			if len(tokenString) == 0 {
 				next.ServeHTTP(w, r)
@@ -108,9 +107,9 @@ func Middleware(prisma *db.PrismaClient) func(next http.Handler) http.Handler {
 			}
 
 			tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
-			claims, err := verifyToken(tokenString)
+			claims, err := utils.VerifyToken(tokenString)
 			if err != nil {
-				http.Error(w, "Error verifying JWT token: " + err.Error(), http.StatusUnauthorized)
+				http.Error(w, "Error verifying JWT token: "+err.Error(), http.StatusUnauthorized)
 				return
 			}
 
