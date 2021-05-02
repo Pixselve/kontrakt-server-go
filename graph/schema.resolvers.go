@@ -53,7 +53,12 @@ func (r *mutationResolver) Login(ctx context.Context, username string, password 
 }
 
 func (r *queryResolver) Contracts(ctx context.Context, groupIds []int) ([]*model.Contract, error) {
-	contracts, err := r.Prisma.Contract.FindMany().Exec(ctx)
+
+	var contractParam []db.ContractWhereParam
+	if groupIds != nil {
+		contractParam = append(contractParam, db.Contract.Groups.Every(db.Group.ID.In(groupIds)))
+	}
+	contracts, err := r.Prisma.Contract.FindMany(contractParam...).Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
