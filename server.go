@@ -65,7 +65,7 @@ func init() {
 	muxRouter.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	muxRouter.Use(Middleware(prismaClient))
 	cors := handlers.CORS(
-		handlers.AllowedHeaders([]string{"content-type"}),
+		handlers.AllowedHeaders([]string{"Authorization"}),
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.AllowCredentials(),
 	)
