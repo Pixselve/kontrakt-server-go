@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/handlers"
 	"kontrakt-server/graph"
 	"kontrakt-server/graph/generated"
 	"kontrakt-server/graph/model"
@@ -15,9 +18,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
@@ -64,6 +64,12 @@ func init() {
 	muxRouter.Handle("/query", server)
 	muxRouter.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	muxRouter.Use(Middleware(prismaClient))
+	cors := handlers.CORS(
+		handlers.AllowedHeaders([]string{"content-type"}),
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowCredentials(),
+	)
+	muxRouter.Use(cors)
 
 }
 
