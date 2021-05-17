@@ -16,7 +16,7 @@ type Contract {
     hexColor: String!
     start: String!
     skills: [Skill!]! @goField(forceResolver: true)
-    groups: [Group!]!
+    groups: [Group!]! @goField(forceResolver: true)
 }
 
 type Group {
@@ -80,7 +80,6 @@ enum Mark {
 type Query {
     contracts(groupIds: [Int!]): [Contract!]!
     groups: [Group!]!
-    marks: [Mark!]!
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
     students: [Student!]!
