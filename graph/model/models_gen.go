@@ -5,6 +5,7 @@ package model
 import (
 	"fmt"
 	"io"
+	"kontrakt-server/prisma/db"
 	"strconv"
 )
 
@@ -13,61 +14,27 @@ type AuthPayload struct {
 	User  *User  `json:"user"`
 }
 
-type Contract struct {
-	Archived bool     `json:"archived"`
-	End      string   `json:"end"`
-	ID       int      `json:"id"`
-	Name     string   `json:"name"`
-	HexColor string   `json:"hexColor"`
-	Start    string   `json:"start"`
-	Skills   []*Skill `json:"skills"`
-	Groups   []*Group `json:"groups"`
-}
-
-type Group struct {
-	ID        int         `json:"id"`
-	Name      string      `json:"name"`
-	Contracts []*Contract `json:"contracts"`
-	Students  []*Student  `json:"students"`
-}
-
 type Skill struct {
-	ContractID    int             `json:"contractId"`
-	ID            int             `json:"id"`
-	Name          string          `json:"name"`
-	Contract      *Contract       `json:"contract"`
-	StudentSkills []*StudentSkill `json:"studentSkills"`
-}
-
-type Student struct {
-	Owner         *User           `json:"owner"`
-	OwnerUsername string          `json:"ownerUsername"`
-	FirstName     string          `json:"firstName"`
-	LastName      string          `json:"lastName"`
-	StudentSkills []*StudentSkill `json:"studentSkills"`
-	Groups        []*Group        `json:"groups"`
+	ContractID    int               `json:"contractId"`
+	ID            int               `json:"id"`
+	Name          string            `json:"name"`
+	Contract      *db.ContractModel `json:"contract"`
+	StudentSkills []StudentSkill    `json:"studentSkills"`
 }
 
 type StudentSkill struct {
-	SkillID   int      `json:"skillID"`
-	StudentID string   `json:"studentID"`
-	Mark      Mark     `json:"mark"`
-	Skill     *Skill   `json:"skill"`
-	Student   *Student `json:"student"`
-}
-
-type Teacher struct {
-	Owner         *User  `json:"owner"`
-	OwnerUsername string `json:"ownerUsername"`
-	FirstName     string `json:"firstName"`
-	LastName      string `json:"lastName"`
+	SkillID   int              `json:"skillID"`
+	StudentID string           `json:"studentID"`
+	Mark      Mark             `json:"mark"`
+	Skill     *Skill           `json:"skill"`
+	Student   *db.StudentModel `json:"student"`
 }
 
 type User struct {
-	Username string     `json:"username"`
-	Role     Role       `json:"role"`
-	Student  []*Student `json:"student"`
-	Teacher  []*Teacher `json:"teacher"`
+	Username string            `json:"username"`
+	Role     Role              `json:"role"`
+	Student  []db.StudentModel `json:"student"`
+	Teacher  []db.TeacherModel `json:"teacher"`
 }
 
 type Mark string

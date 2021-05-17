@@ -22,12 +22,13 @@ resolver:
   layout: follow-schema
   dir: graph
   package: graph
+  filename_template: "{name}.resolvers.go"
 
 # Optional: turn on use `gqlgen:"fieldName"` tags in your models
 # struct_tag: json
 
 # Optional: turn on to use []Thing instead of []*Thing
-# omit_slice_element_pointers: false
+omit_slice_element_pointers: true
 
 # Optional: set to speed up generation time by not performing a final validation pass.
 # skip_validation: true
@@ -54,3 +55,11 @@ models:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
+  Group:
+    model: kontrakt-server/prisma/db.GroupModel
+  Student:
+    model: kontrakt-server/prisma/db.StudentModel
+  Contract:
+    model: kontrakt-server/prisma/db.ContractModel
+  Teacher:
+    model: kontrakt-server/prisma/db.TeacherModel

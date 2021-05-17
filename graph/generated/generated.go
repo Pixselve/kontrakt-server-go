@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"kontrakt-server/graph/model"
+	"kontrakt-server/prisma/db"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -39,6 +40,8 @@ type ResolverRoot interface {
 	Contract() ContractResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Student() StudentResolver
+	Teacher() TeacherResolver
 }
 
 type DirectiveRoot struct {
@@ -77,7 +80,6 @@ type ComplexityRoot struct {
 		Contract  func(childComplexity int, id int) int
 		Contracts func(childComplexity int, groupIds []int) int
 		Groups    func(childComplexity int) int
-		Marks     func(childComplexity int) int
 		Me        func(childComplexity int) int
 		Student   func(childComplexity int, ownerUsername string) int
 		Students  func(childComplexity int) int
@@ -125,20 +127,33 @@ type ComplexityRoot struct {
 }
 
 type ContractResolver interface {
-	Skills(ctx context.Context, obj *model.Contract) ([]*model.Skill, error)
+	End(ctx context.Context, obj *db.ContractModel) (string, error)
+
+	Start(ctx context.Context, obj *db.ContractModel) (string, error)
+	Skills(ctx context.Context, obj *db.ContractModel) ([]model.Skill, error)
+	Groups(ctx context.Context, obj *db.ContractModel) ([]db.GroupModel, error)
 }
 type MutationResolver interface {
 	Login(ctx context.Context, username string, password string) (*model.AuthPayload, error)
 }
 type QueryResolver interface {
-	Contracts(ctx context.Context, groupIds []int) ([]*model.Contract, error)
-	Groups(ctx context.Context) ([]*model.Group, error)
-	Marks(ctx context.Context) ([]model.Mark, error)
-	Student(ctx context.Context, ownerUsername string) (*model.Student, error)
-	Contract(ctx context.Context, id int) (*model.Contract, error)
-	Students(ctx context.Context) ([]*model.Student, error)
-	Teachers(ctx context.Context) ([]*model.Teacher, error)
+	Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error)
+	Groups(ctx context.Context) ([]db.GroupModel, error)
+	Student(ctx context.Context, ownerUsername string) (*db.StudentModel, error)
+	Contract(ctx context.Context, id int) (*db.ContractModel, error)
+	Students(ctx context.Context) ([]db.StudentModel, error)
+	Teachers(ctx context.Context) ([]db.TeacherModel, error)
 	Me(ctx context.Context) (*model.User, error)
+}
+type StudentResolver interface {
+	Owner(ctx context.Context, obj *db.StudentModel) (*model.User, error)
+	OwnerUsername(ctx context.Context, obj *db.StudentModel) (string, error)
+
+	StudentSkills(ctx context.Context, obj *db.StudentModel) ([]model.StudentSkill, error)
+}
+type TeacherResolver interface {
+	Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error)
+	OwnerUsername(ctx context.Context, obj *db.TeacherModel) (string, error)
 }
 
 type executableSchema struct {
@@ -296,13 +311,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Groups(childComplexity), true
-
-	case "Query.marks":
-		if e.complexity.Query.Marks == nil {
-			break
-		}
-
-		return e.complexity.Query.Marks(childComplexity), true
 
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
@@ -587,7 +595,7 @@ type Contract {
     hexColor: String!
     start: String!
     skills: [Skill!]! @goField(forceResolver: true)
-    groups: [Group!]!
+    groups: [Group!]! @goField(forceResolver: true)
 }
 
 type Group {
@@ -651,7 +659,6 @@ enum Mark {
 type Query {
     contracts(groupIds: [Int!]): [Contract!]!
     groups: [Group!]!
-    marks: [Mark!]!
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
     students: [Student!]!
@@ -880,7 +887,7 @@ func (ec *executionContext) _AuthPayload_user(ctx context.Context, field graphql
 	return ec.marshalNUser2ᚖkontraktᚑserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_archived(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_archived(ctx context.Context, field graphql.CollectedField, obj *db.ContractModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -939,7 +946,7 @@ func (ec *executionContext) _Contract_archived(ctx context.Context, field graphq
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_end(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_end(ctx context.Context, field graphql.CollectedField, obj *db.ContractModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -950,14 +957,14 @@ func (ec *executionContext) _Contract_end(ctx context.Context, field graphql.Col
 		Object:     "Contract",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.End, nil
+		return ec.resolvers.Contract().End(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -974,7 +981,7 @@ func (ec *executionContext) _Contract_end(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_id(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_id(ctx context.Context, field graphql.CollectedField, obj *db.ContractModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1009,7 +1016,7 @@ func (ec *executionContext) _Contract_id(ctx context.Context, field graphql.Coll
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_name(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_name(ctx context.Context, field graphql.CollectedField, obj *db.ContractModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1044,7 +1051,7 @@ func (ec *executionContext) _Contract_name(ctx context.Context, field graphql.Co
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_hexColor(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_hexColor(ctx context.Context, field graphql.CollectedField, obj *db.ContractModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1079,7 +1086,7 @@ func (ec *executionContext) _Contract_hexColor(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_start(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_start(ctx context.Context, field graphql.CollectedField, obj *db.ContractModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1090,14 +1097,14 @@ func (ec *executionContext) _Contract_start(ctx context.Context, field graphql.C
 		Object:     "Contract",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Start, nil
+		return ec.resolvers.Contract().Start(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1114,7 +1121,7 @@ func (ec *executionContext) _Contract_start(ctx context.Context, field graphql.C
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_skills(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_skills(ctx context.Context, field graphql.CollectedField, obj *db.ContractModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1144,12 +1151,12 @@ func (ec *executionContext) _Contract_skills(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Skill)
+	res := resTmp.([]model.Skill)
 	fc.Result = res
-	return ec.marshalNSkill2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐSkillᚄ(ctx, field.Selections, res)
+	return ec.marshalNSkill2ᚕkontraktᚑserverᚋgraphᚋmodelᚐSkillᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_groups(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_groups(ctx context.Context, field graphql.CollectedField, obj *db.ContractModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1160,14 +1167,14 @@ func (ec *executionContext) _Contract_groups(ctx context.Context, field graphql.
 		Object:     "Contract",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Groups, nil
+		return ec.resolvers.Contract().Groups(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1179,12 +1186,12 @@ func (ec *executionContext) _Contract_groups(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Group)
+	res := resTmp.([]db.GroupModel)
 	fc.Result = res
-	return ec.marshalNGroup2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐGroupᚄ(ctx, field.Selections, res)
+	return ec.marshalNGroup2ᚕkontraktᚑserverᚋprismaᚋdbᚐGroupModelᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Group_id(ctx context.Context, field graphql.CollectedField, obj *model.Group) (ret graphql.Marshaler) {
+func (ec *executionContext) _Group_id(ctx context.Context, field graphql.CollectedField, obj *db.GroupModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1219,7 +1226,7 @@ func (ec *executionContext) _Group_id(ctx context.Context, field graphql.Collect
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Group_name(ctx context.Context, field graphql.CollectedField, obj *model.Group) (ret graphql.Marshaler) {
+func (ec *executionContext) _Group_name(ctx context.Context, field graphql.CollectedField, obj *db.GroupModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1254,7 +1261,7 @@ func (ec *executionContext) _Group_name(ctx context.Context, field graphql.Colle
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Group_contracts(ctx context.Context, field graphql.CollectedField, obj *model.Group) (ret graphql.Marshaler) {
+func (ec *executionContext) _Group_contracts(ctx context.Context, field graphql.CollectedField, obj *db.GroupModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1265,14 +1272,14 @@ func (ec *executionContext) _Group_contracts(ctx context.Context, field graphql.
 		Object:     "Group",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Contracts, nil
+		return obj.Contracts(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1284,12 +1291,12 @@ func (ec *executionContext) _Group_contracts(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Contract)
+	res := resTmp.([]db.ContractModel)
 	fc.Result = res
-	return ec.marshalNContract2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐContractᚄ(ctx, field.Selections, res)
+	return ec.marshalNContract2ᚕkontraktᚑserverᚋprismaᚋdbᚐContractModelᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Group_students(ctx context.Context, field graphql.CollectedField, obj *model.Group) (ret graphql.Marshaler) {
+func (ec *executionContext) _Group_students(ctx context.Context, field graphql.CollectedField, obj *db.GroupModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1300,14 +1307,14 @@ func (ec *executionContext) _Group_students(ctx context.Context, field graphql.C
 		Object:     "Group",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Students, nil
+		return obj.Students(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1319,9 +1326,9 @@ func (ec *executionContext) _Group_students(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Student)
+	res := resTmp.([]db.StudentModel)
 	fc.Result = res
-	return ec.marshalNStudent2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚕkontraktᚑserverᚋprismaᚋdbᚐStudentModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1403,9 +1410,9 @@ func (ec *executionContext) _Query_contracts(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Contract)
+	res := resTmp.([]db.ContractModel)
 	fc.Result = res
-	return ec.marshalNContract2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐContractᚄ(ctx, field.Selections, res)
+	return ec.marshalNContract2ᚕkontraktᚑserverᚋprismaᚋdbᚐContractModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_groups(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1438,44 +1445,9 @@ func (ec *executionContext) _Query_groups(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Group)
+	res := resTmp.([]db.GroupModel)
 	fc.Result = res
-	return ec.marshalNGroup2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐGroupᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_marks(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Marks(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]model.Mark)
-	fc.Result = res
-	return ec.marshalNMark2ᚕkontraktᚑserverᚋgraphᚋmodelᚐMarkᚄ(ctx, field.Selections, res)
+	return ec.marshalNGroup2ᚕkontraktᚑserverᚋprismaᚋdbᚐGroupModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_student(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1515,9 +1487,9 @@ func (ec *executionContext) _Query_student(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Student)
+	res := resTmp.(*db.StudentModel)
 	fc.Result = res
-	return ec.marshalNStudent2ᚖkontraktᚑserverᚋgraphᚋmodelᚐStudent(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚖkontraktᚑserverᚋprismaᚋdbᚐStudentModel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_contract(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1557,9 +1529,9 @@ func (ec *executionContext) _Query_contract(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Contract)
+	res := resTmp.(*db.ContractModel)
 	fc.Result = res
-	return ec.marshalNContract2ᚖkontraktᚑserverᚋgraphᚋmodelᚐContract(ctx, field.Selections, res)
+	return ec.marshalNContract2ᚖkontraktᚑserverᚋprismaᚋdbᚐContractModel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_students(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1592,9 +1564,9 @@ func (ec *executionContext) _Query_students(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Student)
+	res := resTmp.([]db.StudentModel)
 	fc.Result = res
-	return ec.marshalNStudent2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚕkontraktᚑserverᚋprismaᚋdbᚐStudentModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_teachers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1627,9 +1599,9 @@ func (ec *executionContext) _Query_teachers(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Teacher)
+	res := resTmp.([]db.TeacherModel)
 	fc.Result = res
-	return ec.marshalNTeacher2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐTeacherᚄ(ctx, field.Selections, res)
+	return ec.marshalNTeacher2ᚕkontraktᚑserverᚋprismaᚋdbᚐTeacherModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1873,9 +1845,9 @@ func (ec *executionContext) _Skill_contract(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Contract)
+	res := resTmp.(*db.ContractModel)
 	fc.Result = res
-	return ec.marshalNContract2ᚖkontraktᚑserverᚋgraphᚋmodelᚐContract(ctx, field.Selections, res)
+	return ec.marshalNContract2ᚖkontraktᚑserverᚋprismaᚋdbᚐContractModel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Skill_studentSkills(ctx context.Context, field graphql.CollectedField, obj *model.Skill) (ret graphql.Marshaler) {
@@ -1908,12 +1880,12 @@ func (ec *executionContext) _Skill_studentSkills(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.StudentSkill)
+	res := resTmp.([]model.StudentSkill)
 	fc.Result = res
-	return ec.marshalNStudentSkill2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudentSkill2ᚕkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Student_owner(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
+func (ec *executionContext) _Student_owner(ctx context.Context, field graphql.CollectedField, obj *db.StudentModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1924,14 +1896,14 @@ func (ec *executionContext) _Student_owner(ctx context.Context, field graphql.Co
 		Object:     "Student",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Owner, nil
+		return ec.resolvers.Student().Owner(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1948,7 +1920,7 @@ func (ec *executionContext) _Student_owner(ctx context.Context, field graphql.Co
 	return ec.marshalNUser2ᚖkontraktᚑserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Student_ownerUsername(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
+func (ec *executionContext) _Student_ownerUsername(ctx context.Context, field graphql.CollectedField, obj *db.StudentModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1959,14 +1931,14 @@ func (ec *executionContext) _Student_ownerUsername(ctx context.Context, field gr
 		Object:     "Student",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.OwnerUsername, nil
+		return ec.resolvers.Student().OwnerUsername(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1983,7 +1955,7 @@ func (ec *executionContext) _Student_ownerUsername(ctx context.Context, field gr
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Student_firstName(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
+func (ec *executionContext) _Student_firstName(ctx context.Context, field graphql.CollectedField, obj *db.StudentModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2018,7 +1990,7 @@ func (ec *executionContext) _Student_firstName(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Student_lastName(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
+func (ec *executionContext) _Student_lastName(ctx context.Context, field graphql.CollectedField, obj *db.StudentModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2053,7 +2025,7 @@ func (ec *executionContext) _Student_lastName(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Student_studentSkills(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
+func (ec *executionContext) _Student_studentSkills(ctx context.Context, field graphql.CollectedField, obj *db.StudentModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2064,14 +2036,14 @@ func (ec *executionContext) _Student_studentSkills(ctx context.Context, field gr
 		Object:     "Student",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.StudentSkills, nil
+		return ec.resolvers.Student().StudentSkills(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2083,12 +2055,12 @@ func (ec *executionContext) _Student_studentSkills(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.StudentSkill)
+	res := resTmp.([]model.StudentSkill)
 	fc.Result = res
-	return ec.marshalNStudentSkill2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudentSkill2ᚕkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Student_groups(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
+func (ec *executionContext) _Student_groups(ctx context.Context, field graphql.CollectedField, obj *db.StudentModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2099,14 +2071,14 @@ func (ec *executionContext) _Student_groups(ctx context.Context, field graphql.C
 		Object:     "Student",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Groups, nil
+		return obj.Groups(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2118,9 +2090,9 @@ func (ec *executionContext) _Student_groups(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Group)
+	res := resTmp.([]db.GroupModel)
 	fc.Result = res
-	return ec.marshalNGroup2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐGroupᚄ(ctx, field.Selections, res)
+	return ec.marshalNGroup2ᚕkontraktᚑserverᚋprismaᚋdbᚐGroupModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _StudentSkill_skillID(ctx context.Context, field graphql.CollectedField, obj *model.StudentSkill) (ret graphql.Marshaler) {
@@ -2293,12 +2265,12 @@ func (ec *executionContext) _StudentSkill_student(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Student)
+	res := resTmp.(*db.StudentModel)
 	fc.Result = res
-	return ec.marshalNStudent2ᚖkontraktᚑserverᚋgraphᚋmodelᚐStudent(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚖkontraktᚑserverᚋprismaᚋdbᚐStudentModel(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Teacher_owner(ctx context.Context, field graphql.CollectedField, obj *model.Teacher) (ret graphql.Marshaler) {
+func (ec *executionContext) _Teacher_owner(ctx context.Context, field graphql.CollectedField, obj *db.TeacherModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2309,14 +2281,14 @@ func (ec *executionContext) _Teacher_owner(ctx context.Context, field graphql.Co
 		Object:     "Teacher",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Owner, nil
+		return ec.resolvers.Teacher().Owner(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2333,7 +2305,7 @@ func (ec *executionContext) _Teacher_owner(ctx context.Context, field graphql.Co
 	return ec.marshalNUser2ᚖkontraktᚑserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Teacher_ownerUsername(ctx context.Context, field graphql.CollectedField, obj *model.Teacher) (ret graphql.Marshaler) {
+func (ec *executionContext) _Teacher_ownerUsername(ctx context.Context, field graphql.CollectedField, obj *db.TeacherModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2344,14 +2316,14 @@ func (ec *executionContext) _Teacher_ownerUsername(ctx context.Context, field gr
 		Object:     "Teacher",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.OwnerUsername, nil
+		return ec.resolvers.Teacher().OwnerUsername(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2368,7 +2340,7 @@ func (ec *executionContext) _Teacher_ownerUsername(ctx context.Context, field gr
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Teacher_firstName(ctx context.Context, field graphql.CollectedField, obj *model.Teacher) (ret graphql.Marshaler) {
+func (ec *executionContext) _Teacher_firstName(ctx context.Context, field graphql.CollectedField, obj *db.TeacherModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2403,7 +2375,7 @@ func (ec *executionContext) _Teacher_firstName(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Teacher_lastName(ctx context.Context, field graphql.CollectedField, obj *model.Teacher) (ret graphql.Marshaler) {
+func (ec *executionContext) _Teacher_lastName(ctx context.Context, field graphql.CollectedField, obj *db.TeacherModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2538,9 +2510,9 @@ func (ec *executionContext) _User_student(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Student)
+	res := resTmp.([]db.StudentModel)
 	fc.Result = res
-	return ec.marshalNStudent2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚕkontraktᚑserverᚋprismaᚋdbᚐStudentModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_teacher(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -2573,9 +2545,9 @@ func (ec *executionContext) _User_teacher(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Teacher)
+	res := resTmp.([]db.TeacherModel)
 	fc.Result = res
-	return ec.marshalNTeacher2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐTeacherᚄ(ctx, field.Selections, res)
+	return ec.marshalNTeacher2ᚕkontraktᚑserverᚋprismaᚋdbᚐTeacherModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -3707,7 +3679,7 @@ func (ec *executionContext) _AuthPayload(ctx context.Context, sel ast.SelectionS
 
 var contractImplementors = []string{"Contract"}
 
-func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet, obj *model.Contract) graphql.Marshaler {
+func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet, obj *db.ContractModel) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, contractImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3722,10 +3694,19 @@ func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet,
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "end":
-			out.Values[i] = ec._Contract_end(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Contract_end(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "id":
 			out.Values[i] = ec._Contract_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3742,10 +3723,19 @@ func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet,
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "start":
-			out.Values[i] = ec._Contract_start(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Contract_start(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "skills":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -3761,10 +3751,19 @@ func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet,
 				return res
 			})
 		case "groups":
-			out.Values[i] = ec._Contract_groups(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Contract_groups(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3778,7 +3777,7 @@ func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet,
 
 var groupImplementors = []string{"Group"}
 
-func (ec *executionContext) _Group(ctx context.Context, sel ast.SelectionSet, obj *model.Group) graphql.Marshaler {
+func (ec *executionContext) _Group(ctx context.Context, sel ast.SelectionSet, obj *db.GroupModel) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, groupImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3887,20 +3886,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_groups(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "marks":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_marks(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4040,7 +4025,7 @@ func (ec *executionContext) _Skill(ctx context.Context, sel ast.SelectionSet, ob
 
 var studentImplementors = []string{"Student"}
 
-func (ec *executionContext) _Student(ctx context.Context, sel ast.SelectionSet, obj *model.Student) graphql.Marshaler {
+func (ec *executionContext) _Student(ctx context.Context, sel ast.SelectionSet, obj *db.StudentModel) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, studentImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4050,34 +4035,61 @@ func (ec *executionContext) _Student(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Student")
 		case "owner":
-			out.Values[i] = ec._Student_owner(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Student_owner(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "ownerUsername":
-			out.Values[i] = ec._Student_ownerUsername(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Student_ownerUsername(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "firstName":
 			out.Values[i] = ec._Student_firstName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "lastName":
 			out.Values[i] = ec._Student_lastName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "studentSkills":
-			out.Values[i] = ec._Student_studentSkills(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Student_studentSkills(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "groups":
 			out.Values[i] = ec._Student_groups(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4139,7 +4151,7 @@ func (ec *executionContext) _StudentSkill(ctx context.Context, sel ast.Selection
 
 var teacherImplementors = []string{"Teacher"}
 
-func (ec *executionContext) _Teacher(ctx context.Context, sel ast.SelectionSet, obj *model.Teacher) graphql.Marshaler {
+func (ec *executionContext) _Teacher(ctx context.Context, sel ast.SelectionSet, obj *db.TeacherModel) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, teacherImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4149,24 +4161,42 @@ func (ec *executionContext) _Teacher(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Teacher")
 		case "owner":
-			out.Values[i] = ec._Teacher_owner(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Teacher_owner(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "ownerUsername":
-			out.Values[i] = ec._Teacher_ownerUsername(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Teacher_ownerUsername(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "firstName":
 			out.Values[i] = ec._Teacher_firstName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "lastName":
 			out.Values[i] = ec._Teacher_lastName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4495,11 +4525,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNContract2kontraktᚑserverᚋgraphᚋmodelᚐContract(ctx context.Context, sel ast.SelectionSet, v model.Contract) graphql.Marshaler {
+func (ec *executionContext) marshalNContract2kontraktᚑserverᚋprismaᚋdbᚐContractModel(ctx context.Context, sel ast.SelectionSet, v db.ContractModel) graphql.Marshaler {
 	return ec._Contract(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNContract2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐContractᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Contract) graphql.Marshaler {
+func (ec *executionContext) marshalNContract2ᚕkontraktᚑserverᚋprismaᚋdbᚐContractModelᚄ(ctx context.Context, sel ast.SelectionSet, v []db.ContractModel) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4523,7 +4553,7 @@ func (ec *executionContext) marshalNContract2ᚕᚖkontraktᚑserverᚋgraphᚋm
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNContract2ᚖkontraktᚑserverᚋgraphᚋmodelᚐContract(ctx, sel, v[i])
+			ret[i] = ec.marshalNContract2kontraktᚑserverᚋprismaᚋdbᚐContractModel(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4536,7 +4566,7 @@ func (ec *executionContext) marshalNContract2ᚕᚖkontraktᚑserverᚋgraphᚋm
 	return ret
 }
 
-func (ec *executionContext) marshalNContract2ᚖkontraktᚑserverᚋgraphᚋmodelᚐContract(ctx context.Context, sel ast.SelectionSet, v *model.Contract) graphql.Marshaler {
+func (ec *executionContext) marshalNContract2ᚖkontraktᚑserverᚋprismaᚋdbᚐContractModel(ctx context.Context, sel ast.SelectionSet, v *db.ContractModel) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4546,7 +4576,11 @@ func (ec *executionContext) marshalNContract2ᚖkontraktᚑserverᚋgraphᚋmode
 	return ec._Contract(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNGroup2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Group) graphql.Marshaler {
+func (ec *executionContext) marshalNGroup2kontraktᚑserverᚋprismaᚋdbᚐGroupModel(ctx context.Context, sel ast.SelectionSet, v db.GroupModel) graphql.Marshaler {
+	return ec._Group(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGroup2ᚕkontraktᚑserverᚋprismaᚋdbᚐGroupModelᚄ(ctx context.Context, sel ast.SelectionSet, v []db.GroupModel) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4570,7 +4604,7 @@ func (ec *executionContext) marshalNGroup2ᚕᚖkontraktᚑserverᚋgraphᚋmode
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNGroup2ᚖkontraktᚑserverᚋgraphᚋmodelᚐGroup(ctx, sel, v[i])
+			ret[i] = ec.marshalNGroup2kontraktᚑserverᚋprismaᚋdbᚐGroupModel(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4581,16 +4615,6 @@ func (ec *executionContext) marshalNGroup2ᚕᚖkontraktᚑserverᚋgraphᚋmode
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) marshalNGroup2ᚖkontraktᚑserverᚋgraphᚋmodelᚐGroup(ctx context.Context, sel ast.SelectionSet, v *model.Group) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Group(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -4618,64 +4642,6 @@ func (ec *executionContext) marshalNMark2kontraktᚑserverᚋgraphᚋmodelᚐMar
 	return v
 }
 
-func (ec *executionContext) unmarshalNMark2ᚕkontraktᚑserverᚋgraphᚋmodelᚐMarkᚄ(ctx context.Context, v interface{}) ([]model.Mark, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]model.Mark, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNMark2kontraktᚑserverᚋgraphᚋmodelᚐMark(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNMark2ᚕkontraktᚑserverᚋgraphᚋmodelᚐMarkᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Mark) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNMark2kontraktᚑserverᚋgraphᚋmodelᚐMark(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
 func (ec *executionContext) unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx context.Context, v interface{}) (model.Role, error) {
 	var res model.Role
 	err := res.UnmarshalGQL(v)
@@ -4686,7 +4652,11 @@ func (ec *executionContext) marshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRol
 	return v
 }
 
-func (ec *executionContext) marshalNSkill2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐSkillᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Skill) graphql.Marshaler {
+func (ec *executionContext) marshalNSkill2kontraktᚑserverᚋgraphᚋmodelᚐSkill(ctx context.Context, sel ast.SelectionSet, v model.Skill) graphql.Marshaler {
+	return ec._Skill(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSkill2ᚕkontraktᚑserverᚋgraphᚋmodelᚐSkillᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Skill) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4710,7 +4680,7 @@ func (ec *executionContext) marshalNSkill2ᚕᚖkontraktᚑserverᚋgraphᚋmode
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNSkill2ᚖkontraktᚑserverᚋgraphᚋmodelᚐSkill(ctx, sel, v[i])
+			ret[i] = ec.marshalNSkill2kontraktᚑserverᚋgraphᚋmodelᚐSkill(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4748,11 +4718,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNStudent2kontraktᚑserverᚋgraphᚋmodelᚐStudent(ctx context.Context, sel ast.SelectionSet, v model.Student) graphql.Marshaler {
+func (ec *executionContext) marshalNStudent2kontraktᚑserverᚋprismaᚋdbᚐStudentModel(ctx context.Context, sel ast.SelectionSet, v db.StudentModel) graphql.Marshaler {
 	return ec._Student(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNStudent2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Student) graphql.Marshaler {
+func (ec *executionContext) marshalNStudent2ᚕkontraktᚑserverᚋprismaᚋdbᚐStudentModelᚄ(ctx context.Context, sel ast.SelectionSet, v []db.StudentModel) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4776,7 +4746,7 @@ func (ec *executionContext) marshalNStudent2ᚕᚖkontraktᚑserverᚋgraphᚋmo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNStudent2ᚖkontraktᚑserverᚋgraphᚋmodelᚐStudent(ctx, sel, v[i])
+			ret[i] = ec.marshalNStudent2kontraktᚑserverᚋprismaᚋdbᚐStudentModel(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4789,7 +4759,7 @@ func (ec *executionContext) marshalNStudent2ᚕᚖkontraktᚑserverᚋgraphᚋmo
 	return ret
 }
 
-func (ec *executionContext) marshalNStudent2ᚖkontraktᚑserverᚋgraphᚋmodelᚐStudent(ctx context.Context, sel ast.SelectionSet, v *model.Student) graphql.Marshaler {
+func (ec *executionContext) marshalNStudent2ᚖkontraktᚑserverᚋprismaᚋdbᚐStudentModel(ctx context.Context, sel ast.SelectionSet, v *db.StudentModel) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4799,7 +4769,11 @@ func (ec *executionContext) marshalNStudent2ᚖkontraktᚑserverᚋgraphᚋmodel
 	return ec._Student(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNStudentSkill2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.StudentSkill) graphql.Marshaler {
+func (ec *executionContext) marshalNStudentSkill2kontraktᚑserverᚋgraphᚋmodelᚐStudentSkill(ctx context.Context, sel ast.SelectionSet, v model.StudentSkill) graphql.Marshaler {
+	return ec._StudentSkill(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNStudentSkill2ᚕkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx context.Context, sel ast.SelectionSet, v []model.StudentSkill) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4823,7 +4797,7 @@ func (ec *executionContext) marshalNStudentSkill2ᚕᚖkontraktᚑserverᚋgraph
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNStudentSkill2ᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentSkill(ctx, sel, v[i])
+			ret[i] = ec.marshalNStudentSkill2kontraktᚑserverᚋgraphᚋmodelᚐStudentSkill(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4836,17 +4810,11 @@ func (ec *executionContext) marshalNStudentSkill2ᚕᚖkontraktᚑserverᚋgraph
 	return ret
 }
 
-func (ec *executionContext) marshalNStudentSkill2ᚖkontraktᚑserverᚋgraphᚋmodelᚐStudentSkill(ctx context.Context, sel ast.SelectionSet, v *model.StudentSkill) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._StudentSkill(ctx, sel, v)
+func (ec *executionContext) marshalNTeacher2kontraktᚑserverᚋprismaᚋdbᚐTeacherModel(ctx context.Context, sel ast.SelectionSet, v db.TeacherModel) graphql.Marshaler {
+	return ec._Teacher(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTeacher2ᚕᚖkontraktᚑserverᚋgraphᚋmodelᚐTeacherᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Teacher) graphql.Marshaler {
+func (ec *executionContext) marshalNTeacher2ᚕkontraktᚑserverᚋprismaᚋdbᚐTeacherModelᚄ(ctx context.Context, sel ast.SelectionSet, v []db.TeacherModel) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4870,7 +4838,7 @@ func (ec *executionContext) marshalNTeacher2ᚕᚖkontraktᚑserverᚋgraphᚋmo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTeacher2ᚖkontraktᚑserverᚋgraphᚋmodelᚐTeacher(ctx, sel, v[i])
+			ret[i] = ec.marshalNTeacher2kontraktᚑserverᚋprismaᚋdbᚐTeacherModel(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4881,16 +4849,6 @@ func (ec *executionContext) marshalNTeacher2ᚕᚖkontraktᚑserverᚋgraphᚋmo
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) marshalNTeacher2ᚖkontraktᚑserverᚋgraphᚋmodelᚐTeacher(ctx context.Context, sel ast.SelectionSet, v *model.Teacher) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Teacher(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUser2kontraktᚑserverᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
