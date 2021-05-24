@@ -115,6 +115,10 @@ func (r *studentResolver) StudentSkills(ctx context.Context, obj *db.StudentMode
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *studentResolver) Groups(ctx context.Context, obj *db.StudentModel) ([]db.GroupModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error) {
 	user, err := r.Prisma.User.FindUnique(db.User.Username.Equals(obj.OwnerID)).Exec(ctx)
 	if err != nil {

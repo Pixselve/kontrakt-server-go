@@ -150,6 +150,7 @@ type StudentResolver interface {
 	OwnerUsername(ctx context.Context, obj *db.StudentModel) (string, error)
 
 	StudentSkills(ctx context.Context, obj *db.StudentModel) ([]model.StudentSkill, error)
+	Groups(ctx context.Context, obj *db.StudentModel) ([]db.GroupModel, error)
 }
 type TeacherResolver interface {
 	Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error)
@@ -626,8 +627,8 @@ type Student {
     ownerUsername: String!
     firstName: String!
     lastName: String!
-    studentSkills: [StudentSkill!]!
-    groups: [Group!]!
+    studentSkills: [StudentSkill!]! @goField(forceResolver: true)
+    groups: [Group!]! @goField(forceResolver: true)
 }
 
 type Teacher {
@@ -2072,13 +2073,13 @@ func (ec *executionContext) _Student_groups(ctx context.Context, field graphql.C
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
-		IsResolver: false,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Groups(), nil
+		return ec.resolvers.Student().Groups(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4087,10 +4088,19 @@ func (ec *executionContext) _Student(ctx context.Context, sel ast.SelectionSet, 
 				return res
 			})
 		case "groups":
-			out.Values[i] = ec._Student_groups(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Student_groups(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

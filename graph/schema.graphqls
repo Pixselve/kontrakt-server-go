@@ -47,8 +47,8 @@ type Student {
     ownerUsername: String!
     firstName: String!
     lastName: String!
-    studentSkills: [StudentSkill!]!
-    groups: [Group!]!
+    studentSkills: [StudentSkill!]! @goField(forceResolver: true)
+    groups: [Group!]! @goField(forceResolver: true)
 }
 
 type Teacher {
