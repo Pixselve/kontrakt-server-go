@@ -38,8 +38,8 @@ type StudentSkill {
     skillID: Int!
     studentID: String!
     mark: Mark!
-    skill: Skill!
-    student: Student!
+    skill: Skill! @goField(forceResolver: true)
+    student: Student! @goField(forceResolver: true)
 }
 
 type Student {

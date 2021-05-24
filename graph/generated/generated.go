@@ -155,6 +155,8 @@ type StudentResolver interface {
 }
 type StudentSkillResolver interface {
 	Mark(ctx context.Context, obj *db.StudentSkillModel) (model.Mark, error)
+	Skill(ctx context.Context, obj *db.StudentSkillModel) (*db.SkillModel, error)
+	Student(ctx context.Context, obj *db.StudentSkillModel) (*db.StudentModel, error)
 }
 type TeacherResolver interface {
 	Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error)
@@ -622,8 +624,8 @@ type StudentSkill {
     skillID: Int!
     studentID: String!
     mark: Mark!
-    skill: Skill!
-    student: Student!
+    skill: Skill! @goField(forceResolver: true)
+    student: Student! @goField(forceResolver: true)
 }
 
 type Student {
@@ -2217,13 +2219,13 @@ func (ec *executionContext) _StudentSkill_skill(ctx context.Context, field graph
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
-		IsResolver: false,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Skill(), nil
+		return ec.resolvers.StudentSkill().Skill(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2252,13 +2254,13 @@ func (ec *executionContext) _StudentSkill_student(ctx context.Context, field gra
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
-		IsResolver: false,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Student(), nil
+		return ec.resolvers.StudentSkill().Student(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4152,15 +4154,33 @@ func (ec *executionContext) _StudentSkill(ctx context.Context, sel ast.Selection
 				return res
 			})
 		case "skill":
-			out.Values[i] = ec._StudentSkill_skill(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._StudentSkill_skill(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "student":
-			out.Values[i] = ec._StudentSkill_student(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._StudentSkill_student(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

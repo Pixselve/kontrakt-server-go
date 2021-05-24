@@ -111,6 +111,14 @@ func (r *studentSkillResolver) Mark(ctx context.Context, obj *db.StudentSkillMod
 	return model.Mark(obj.Mark), nil
 }
 
+func (r *studentSkillResolver) Skill(ctx context.Context, obj *db.StudentSkillModel) (*db.SkillModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *studentSkillResolver) Student(ctx context.Context, obj *db.StudentSkillModel) (*db.StudentModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error) {
 	user, err := r.Prisma.User.FindUnique(db.User.Username.Equals(obj.OwnerID)).Exec(ctx)
 	if err != nil {
