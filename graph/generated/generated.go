@@ -41,6 +41,7 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Student() StudentResolver
+	StudentSkill() StudentSkillResolver
 	Teacher() TeacherResolver
 }
 
@@ -149,8 +150,12 @@ type StudentResolver interface {
 	Owner(ctx context.Context, obj *db.StudentModel) (*model.User, error)
 	OwnerUsername(ctx context.Context, obj *db.StudentModel) (string, error)
 
-	StudentSkills(ctx context.Context, obj *db.StudentModel) ([]model.StudentSkill, error)
+	StudentSkills(ctx context.Context, obj *db.StudentModel) ([]db.StudentSkillModel, error)
 	Groups(ctx context.Context, obj *db.StudentModel) ([]db.GroupModel, error)
+}
+type StudentSkillResolver interface {
+	Mark(ctx context.Context, obj *db.StudentSkillModel) (model.Mark, error)
+	Skill(ctx context.Context, obj *db.StudentSkillModel) (*model.Skill, error)
 }
 type TeacherResolver interface {
 	Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error)
@@ -1881,9 +1886,9 @@ func (ec *executionContext) _Skill_studentSkills(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]model.StudentSkill)
+	res := resTmp.([]db.StudentSkillModel)
 	fc.Result = res
-	return ec.marshalNStudentSkill2ᚕkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudentSkill2ᚕkontraktᚑserverᚋprismaᚋdbᚐStudentSkillModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Student_owner(ctx context.Context, field graphql.CollectedField, obj *db.StudentModel) (ret graphql.Marshaler) {
@@ -2056,9 +2061,9 @@ func (ec *executionContext) _Student_studentSkills(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]model.StudentSkill)
+	res := resTmp.([]db.StudentSkillModel)
 	fc.Result = res
-	return ec.marshalNStudentSkill2ᚕkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudentSkill2ᚕkontraktᚑserverᚋprismaᚋdbᚐStudentSkillModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Student_groups(ctx context.Context, field graphql.CollectedField, obj *db.StudentModel) (ret graphql.Marshaler) {
@@ -2096,7 +2101,7 @@ func (ec *executionContext) _Student_groups(ctx context.Context, field graphql.C
 	return ec.marshalNGroup2ᚕkontraktᚑserverᚋprismaᚋdbᚐGroupModelᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StudentSkill_skillID(ctx context.Context, field graphql.CollectedField, obj *model.StudentSkill) (ret graphql.Marshaler) {
+func (ec *executionContext) _StudentSkill_skillID(ctx context.Context, field graphql.CollectedField, obj *db.StudentSkillModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2131,7 +2136,7 @@ func (ec *executionContext) _StudentSkill_skillID(ctx context.Context, field gra
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StudentSkill_studentID(ctx context.Context, field graphql.CollectedField, obj *model.StudentSkill) (ret graphql.Marshaler) {
+func (ec *executionContext) _StudentSkill_studentID(ctx context.Context, field graphql.CollectedField, obj *db.StudentSkillModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2166,7 +2171,7 @@ func (ec *executionContext) _StudentSkill_studentID(ctx context.Context, field g
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StudentSkill_mark(ctx context.Context, field graphql.CollectedField, obj *model.StudentSkill) (ret graphql.Marshaler) {
+func (ec *executionContext) _StudentSkill_mark(ctx context.Context, field graphql.CollectedField, obj *db.StudentSkillModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2177,14 +2182,14 @@ func (ec *executionContext) _StudentSkill_mark(ctx context.Context, field graphq
 		Object:     "StudentSkill",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Mark, nil
+		return ec.resolvers.StudentSkill().Mark(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2201,7 +2206,7 @@ func (ec *executionContext) _StudentSkill_mark(ctx context.Context, field graphq
 	return ec.marshalNMark2kontraktᚑserverᚋgraphᚋmodelᚐMark(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StudentSkill_skill(ctx context.Context, field graphql.CollectedField, obj *model.StudentSkill) (ret graphql.Marshaler) {
+func (ec *executionContext) _StudentSkill_skill(ctx context.Context, field graphql.CollectedField, obj *db.StudentSkillModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2212,14 +2217,14 @@ func (ec *executionContext) _StudentSkill_skill(ctx context.Context, field graph
 		Object:     "StudentSkill",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Skill, nil
+		return ec.resolvers.StudentSkill().Skill(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2236,7 +2241,7 @@ func (ec *executionContext) _StudentSkill_skill(ctx context.Context, field graph
 	return ec.marshalNSkill2ᚖkontraktᚑserverᚋgraphᚋmodelᚐSkill(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StudentSkill_student(ctx context.Context, field graphql.CollectedField, obj *model.StudentSkill) (ret graphql.Marshaler) {
+func (ec *executionContext) _StudentSkill_student(ctx context.Context, field graphql.CollectedField, obj *db.StudentSkillModel) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2247,14 +2252,14 @@ func (ec *executionContext) _StudentSkill_student(ctx context.Context, field gra
 		Object:     "StudentSkill",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Student, nil
+		return obj.Student(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4114,7 +4119,7 @@ func (ec *executionContext) _Student(ctx context.Context, sel ast.SelectionSet, 
 
 var studentSkillImplementors = []string{"StudentSkill"}
 
-func (ec *executionContext) _StudentSkill(ctx context.Context, sel ast.SelectionSet, obj *model.StudentSkill) graphql.Marshaler {
+func (ec *executionContext) _StudentSkill(ctx context.Context, sel ast.SelectionSet, obj *db.StudentSkillModel) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, studentSkillImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4126,27 +4131,45 @@ func (ec *executionContext) _StudentSkill(ctx context.Context, sel ast.Selection
 		case "skillID":
 			out.Values[i] = ec._StudentSkill_skillID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "studentID":
 			out.Values[i] = ec._StudentSkill_studentID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "mark":
-			out.Values[i] = ec._StudentSkill_mark(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._StudentSkill_mark(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "skill":
-			out.Values[i] = ec._StudentSkill_skill(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._StudentSkill_skill(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "student":
 			out.Values[i] = ec._StudentSkill_student(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4779,11 +4802,11 @@ func (ec *executionContext) marshalNStudent2ᚖkontraktᚑserverᚋprismaᚋdb�
 	return ec._Student(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNStudentSkill2kontraktᚑserverᚋgraphᚋmodelᚐStudentSkill(ctx context.Context, sel ast.SelectionSet, v model.StudentSkill) graphql.Marshaler {
+func (ec *executionContext) marshalNStudentSkill2kontraktᚑserverᚋprismaᚋdbᚐStudentSkillModel(ctx context.Context, sel ast.SelectionSet, v db.StudentSkillModel) graphql.Marshaler {
 	return ec._StudentSkill(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNStudentSkill2ᚕkontraktᚑserverᚋgraphᚋmodelᚐStudentSkillᚄ(ctx context.Context, sel ast.SelectionSet, v []model.StudentSkill) graphql.Marshaler {
+func (ec *executionContext) marshalNStudentSkill2ᚕkontraktᚑserverᚋprismaᚋdbᚐStudentSkillModelᚄ(ctx context.Context, sel ast.SelectionSet, v []db.StudentSkillModel) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4807,7 +4830,7 @@ func (ec *executionContext) marshalNStudentSkill2ᚕkontraktᚑserverᚋgraphᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNStudentSkill2kontraktᚑserverᚋgraphᚋmodelᚐStudentSkill(ctx, sel, v[i])
+			ret[i] = ec.marshalNStudentSkill2kontraktᚑserverᚋprismaᚋdbᚐStudentSkillModel(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

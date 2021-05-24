@@ -15,19 +15,11 @@ type AuthPayload struct {
 }
 
 type Skill struct {
-	ContractID    int               `json:"contractId"`
-	ID            int               `json:"id"`
-	Name          string            `json:"name"`
-	Contract      *db.ContractModel `json:"contract"`
-	StudentSkills []StudentSkill    `json:"studentSkills"`
-}
-
-type StudentSkill struct {
-	SkillID   int              `json:"skillID"`
-	StudentID string           `json:"studentID"`
-	Mark      Mark             `json:"mark"`
-	Skill     *Skill           `json:"skill"`
-	Student   *db.StudentModel `json:"student"`
+	ContractID    int                    `json:"contractId"`
+	ID            int                    `json:"id"`
+	Name          string                 `json:"name"`
+	Contract      *db.ContractModel      `json:"contract"`
+	StudentSkills []db.StudentSkillModel `json:"studentSkills"`
 }
 
 type User struct {
