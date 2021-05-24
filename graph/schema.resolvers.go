@@ -100,7 +100,26 @@ func (r *studentResolver) OwnerUsername(ctx context.Context, obj *db.StudentMode
 }
 
 func (r *studentResolver) StudentSkills(ctx context.Context, obj *db.StudentModel) ([]db.StudentSkillModel, error) {
-	return r.Prisma.StudentSkill.FindMany(db.StudentSkill.StudentID.Equals(obj.OwnerID)).Exec(ctx)
+	// Find existing studentSkills
+	studentSkills, err := r.Prisma.StudentSkill.FindMany(db.StudentSkill.StudentID.Equals(obj.OwnerID)).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Find to do studentSkills
+	todoSkills, err := r.Prisma.Skill.FindMany(db.Skill.StudentSkills.Every(db.StudentSkill.Not(db.StudentSkill.StudentID.Equals(obj.OwnerID))), db.Skill.Contract.Where(db.Contract.Groups.Some(db.Group.Students.Some(db.Student.OwnerID.Equals(obj.OwnerID))))).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, skill := range todoSkills {
+		studentSkills = append(studentSkills, db.StudentSkillModel{
+			InnerStudentSkill: db.InnerStudentSkill{
+				SkillID:   skill.ID,
+				StudentID: obj.OwnerID,
+				Mark:      db.MarkTODO,
+			},
+		})
+	}
+	return studentSkills, nil
 }
 
 func (r *studentResolver) Groups(ctx context.Context, obj *db.StudentModel) ([]db.GroupModel, error) {
