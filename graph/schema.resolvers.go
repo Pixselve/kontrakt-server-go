@@ -116,7 +116,7 @@ func (r *studentSkillResolver) Skill(ctx context.Context, obj *db.StudentSkillMo
 }
 
 func (r *studentSkillResolver) Student(ctx context.Context, obj *db.StudentSkillModel) (*db.StudentModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(obj.StudentID)).Exec(ctx)
 }
 
 func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error) {
