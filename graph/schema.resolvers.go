@@ -22,20 +22,8 @@ func (r *contractResolver) Start(ctx context.Context, obj *db.ContractModel) (st
 	return obj.Start.String(), nil
 }
 
-func (r *contractResolver) Skills(ctx context.Context, obj *db.ContractModel) ([]model.Skill, error) {
-	skills, err := r.Prisma.Skill.FindMany(db.Skill.ContractID.Equals(obj.ID)).Exec(ctx)
-	if err != nil {
-		return []model.Skill{}, nil
-	}
-	var result []model.Skill
-	for _, skill := range skills {
-		result = append(result, model.Skill{
-			ContractID: skill.ContractID,
-			ID:         skill.ID,
-			Name:       skill.Name,
-		})
-	}
-	return result, nil
+func (r *contractResolver) Skills(ctx context.Context, obj *db.ContractModel) ([]db.SkillModel, error) {
+	return r.Prisma.Skill.FindMany(db.Skill.ContractID.Equals(obj.ID)).Exec(ctx)
 }
 
 func (r *contractResolver) Groups(ctx context.Context, obj *db.ContractModel) ([]db.GroupModel, error) {
@@ -111,12 +99,16 @@ func (r *studentResolver) OwnerUsername(ctx context.Context, obj *db.StudentMode
 	return obj.OwnerID, nil
 }
 
-func (r *studentResolver) StudentSkills(ctx context.Context, obj *db.StudentModel) ([]model.StudentSkill, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *studentResolver) StudentSkills(ctx context.Context, obj *db.StudentModel) ([]db.StudentSkillModel, error) {
+	return r.Prisma.StudentSkill.FindMany(db.StudentSkill.StudentID.Equals(obj.OwnerID)).Exec(ctx)
 }
 
 func (r *studentResolver) Groups(ctx context.Context, obj *db.StudentModel) ([]db.GroupModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Group.FindMany(db.Group.Students.Some(db.Student.OwnerID.Equals(obj.OwnerID))).Exec(ctx)
+}
+
+func (r *studentSkillResolver) Mark(ctx context.Context, obj *db.StudentSkillModel) (model.Mark, error) {
+	return model.Mark(obj.Mark), nil
 }
 
 func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error) {
@@ -146,6 +138,9 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 // Student returns generated.StudentResolver implementation.
 func (r *Resolver) Student() generated.StudentResolver { return &studentResolver{r} }
 
+// StudentSkill returns generated.StudentSkillResolver implementation.
+func (r *Resolver) StudentSkill() generated.StudentSkillResolver { return &studentSkillResolver{r} }
+
 // Teacher returns generated.TeacherResolver implementation.
 func (r *Resolver) Teacher() generated.TeacherResolver { return &teacherResolver{r} }
 
@@ -153,4 +148,5 @@ type contractResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type studentResolver struct{ *Resolver }
+type studentSkillResolver struct{ *Resolver }
 type teacherResolver struct{ *Resolver }
