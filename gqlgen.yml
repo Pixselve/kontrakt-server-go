@@ -65,3 +65,5 @@ models:
     model: kontrakt-server/prisma/db.TeacherModel
   StudentSkill:
     model: kontrakt-server/prisma/db.StudentSkillModel
+  Skill:
+    model: kontrakt-server/prisma/db.SkillModel

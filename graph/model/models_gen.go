@@ -14,14 +14,6 @@ type AuthPayload struct {
 	User  *User  `json:"user"`
 }
 
-type Skill struct {
-	ContractID    int                    `json:"contractId"`
-	ID            int                    `json:"id"`
-	Name          string                 `json:"name"`
-	Contract      *db.ContractModel      `json:"contract"`
-	StudentSkills []db.StudentSkillModel `json:"studentSkills"`
-}
-
 type User struct {
 	Username string            `json:"username"`
 	Role     Role              `json:"role"`
