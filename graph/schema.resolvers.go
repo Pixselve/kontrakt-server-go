@@ -112,7 +112,7 @@ func (r *studentSkillResolver) Mark(ctx context.Context, obj *db.StudentSkillMod
 }
 
 func (r *studentSkillResolver) Skill(ctx context.Context, obj *db.StudentSkillModel) (*db.SkillModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Skill.FindUnique(db.Skill.ID.Equals(obj.SkillID)).Exec(ctx)
 }
 
 func (r *studentSkillResolver) Student(ctx context.Context, obj *db.StudentSkillModel) (*db.StudentModel, error) {
