@@ -85,7 +85,26 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 }
 
 func (r *queryResolver) StudentSkills(ctx context.Context, studentUsername string, contractID *int) ([]db.StudentSkillModel, error) {
-	return r.Prisma.StudentSkill.FindMany(db.StudentSkill.StudentID.Equals(studentUsername), db.StudentSkill.Skill.Where(db.Skill.ContractID.EqualsIfPresent(contractID))).Exec(ctx)
+	// Find existing studentSkills
+	studentSkills, err := r.Prisma.StudentSkill.FindMany(db.StudentSkill.StudentID.Equals(studentUsername), db.StudentSkill.Skill.Where(db.Skill.ContractID.EqualsIfPresent(contractID))).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Find to do studentSkills
+	todoSkills, err := r.Prisma.Skill.FindMany(db.Skill.StudentSkills.Every(db.StudentSkill.Not(db.StudentSkill.StudentID.Equals(studentUsername))), db.Skill.Contract.Where(db.Contract.ID.EqualsIfPresent(contractID), db.Contract.Groups.Some(db.Group.Students.Some(db.Student.OwnerID.Equals(studentUsername))))).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, skill := range todoSkills {
+		studentSkills = append(studentSkills, db.StudentSkillModel{
+			InnerStudentSkill: db.InnerStudentSkill{
+				SkillID:   skill.ID,
+				StudentID: studentUsername,
+				Mark:      db.MarkTODO,
+			},
+		})
+	}
+	return studentSkills, nil
 }
 
 func (r *studentResolver) Owner(ctx context.Context, obj *db.StudentModel) (*model.User, error) {
