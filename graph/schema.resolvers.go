@@ -85,7 +85,7 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 }
 
 func (r *queryResolver) StudentSkills(ctx context.Context, studentUsername string, contractID *int) ([]db.StudentSkillModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.StudentSkill.FindMany(db.StudentSkill.StudentID.Equals(studentUsername), db.StudentSkill.Skill.Where(db.Skill.ContractID.EqualsIfPresent(contractID))).Exec(ctx)
 }
 
 func (r *studentResolver) Owner(ctx context.Context, obj *db.StudentModel) (*model.User, error) {
