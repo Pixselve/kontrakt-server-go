@@ -85,6 +85,7 @@ type Query {
     students: [Student!]!
     teachers: [Teacher!]!
     me: User!
+    studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]!
 }
 type Mutation {
     login(username: String!, password: String!): AuthPayload!

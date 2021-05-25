@@ -78,13 +78,14 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Contract  func(childComplexity int, id int) int
-		Contracts func(childComplexity int, groupIds []int) int
-		Groups    func(childComplexity int) int
-		Me        func(childComplexity int) int
-		Student   func(childComplexity int, ownerUsername string) int
-		Students  func(childComplexity int) int
-		Teachers  func(childComplexity int) int
+		Contract      func(childComplexity int, id int) int
+		Contracts     func(childComplexity int, groupIds []int) int
+		Groups        func(childComplexity int) int
+		Me            func(childComplexity int) int
+		Student       func(childComplexity int, ownerUsername string) int
+		StudentSkills func(childComplexity int, studentUsername string, contractID *int) int
+		Students      func(childComplexity int) int
+		Teachers      func(childComplexity int) int
 	}
 
 	Skill struct {
@@ -145,6 +146,7 @@ type QueryResolver interface {
 	Students(ctx context.Context) ([]db.StudentModel, error)
 	Teachers(ctx context.Context) ([]db.TeacherModel, error)
 	Me(ctx context.Context) (*model.User, error)
+	StudentSkills(ctx context.Context, studentUsername string, contractID *int) ([]db.StudentSkillModel, error)
 }
 type StudentResolver interface {
 	Owner(ctx context.Context, obj *db.StudentModel) (*model.User, error)
@@ -337,6 +339,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Student(childComplexity, args["ownerUsername"].(string)), true
+
+	case "Query.studentSkills":
+		if e.complexity.Query.StudentSkills == nil {
+			break
+		}
+
+		args, err := ec.field_Query_studentSkills_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.StudentSkills(childComplexity, args["studentUsername"].(string), args["contractID"].(*int)), true
 
 	case "Query.students":
 		if e.complexity.Query.Students == nil {
@@ -671,6 +685,7 @@ type Query {
     students: [Student!]!
     teachers: [Teacher!]!
     me: User!
+    studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]!
 }
 type Mutation {
     login(username: String!, password: String!): AuthPayload!
@@ -768,6 +783,30 @@ func (ec *executionContext) field_Query_contracts_args(ctx context.Context, rawA
 		}
 	}
 	args["groupIds"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_studentSkills_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["studentUsername"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("studentUsername"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["studentUsername"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["contractID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contractID"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contractID"] = arg1
 	return args, nil
 }
 
@@ -1644,6 +1683,48 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚖkontraktᚑserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_studentSkills(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_studentSkills_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().StudentSkills(rctx, args["studentUsername"].(string), args["contractID"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]db.StudentSkillModel)
+	fc.Result = res
+	return ec.marshalNStudentSkill2ᚕkontraktᚑserverᚋprismaᚋdbᚐStudentSkillModelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3968,6 +4049,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "studentSkills":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_studentSkills(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -5195,6 +5290,21 @@ func (ec *executionContext) marshalOInt2ᚕintᚄ(ctx context.Context, sel ast.S
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalInt(*v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

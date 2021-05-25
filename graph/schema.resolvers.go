@@ -84,6 +84,10 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *queryResolver) StudentSkills(ctx context.Context, studentUsername string, contractID *int) ([]db.StudentSkillModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *studentResolver) Owner(ctx context.Context, obj *db.StudentModel) (*model.User, error) {
 	user, err := r.Prisma.User.FindUnique(db.User.Username.Equals(obj.OwnerID)).Exec(ctx)
 	if err != nil {
