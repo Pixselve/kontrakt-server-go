@@ -108,7 +108,26 @@ func (r *queryResolver) StudentSkills(ctx context.Context, studentUsername strin
 }
 
 func (r *skillResolver) StudentSkills(ctx context.Context, obj *db.SkillModel) ([]db.StudentSkillModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	// Find existing studentSkills
+	studentSkills, err := r.Prisma.StudentSkill.FindMany(db.StudentSkill.SkillID.Equals(obj.ID)).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Find to do studentSkills
+	todoStudents, err := r.Prisma.Student.FindMany(db.Student.Groups.Some(db.Group.Contracts.Some(db.Contract.ID.Equals(obj.ContractID))), db.Student.StudentSkills.Some(db.StudentSkill.Not(db.StudentSkill.SkillID.Equals(obj.ID)))).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, student := range todoStudents {
+		studentSkills = append(studentSkills, db.StudentSkillModel{
+			InnerStudentSkill: db.InnerStudentSkill{
+				SkillID:   obj.ID,
+				StudentID: student.OwnerID,
+				Mark:      db.MarkTODO,
+			},
+		})
+	}
+	return studentSkills, nil
 }
 
 func (r *studentResolver) Owner(ctx context.Context, obj *db.StudentModel) (*model.User, error) {
