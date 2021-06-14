@@ -107,6 +107,10 @@ func (r *queryResolver) StudentSkills(ctx context.Context, studentUsername strin
 	return studentSkills, nil
 }
 
+func (r *skillResolver) StudentSkills(ctx context.Context, obj *db.SkillModel) ([]db.StudentSkillModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *studentResolver) Owner(ctx context.Context, obj *db.StudentModel) (*model.User, error) {
 	user, err := r.Prisma.User.FindUnique(db.User.Username.Equals(obj.OwnerID)).Exec(ctx)
 	if err != nil {
@@ -185,6 +189,9 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Skill returns generated.SkillResolver implementation.
+func (r *Resolver) Skill() generated.SkillResolver { return &skillResolver{r} }
+
 // Student returns generated.StudentResolver implementation.
 func (r *Resolver) Student() generated.StudentResolver { return &studentResolver{r} }
 
@@ -197,6 +204,7 @@ func (r *Resolver) Teacher() generated.TeacherResolver { return &teacherResolver
 type contractResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type skillResolver struct{ *Resolver }
 type studentResolver struct{ *Resolver }
 type studentSkillResolver struct{ *Resolver }
 type teacherResolver struct{ *Resolver }

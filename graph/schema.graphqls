@@ -31,7 +31,7 @@ type Skill {
     id: Int!
     name: String!
     contract: Contract!
-    studentSkills: [StudentSkill!]!
+    studentSkills: [StudentSkill!]! @goField(forceResolver: true)
 }
 
 type StudentSkill {
