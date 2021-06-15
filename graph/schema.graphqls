@@ -90,6 +90,15 @@ type Query {
 type Mutation {
     login(username: String!, password: String!): AuthPayload!
     createOneGroup(name: String!, contractID: Int): Group!
+    updateOneContract(contractID: Int!, groupIDs: [Int!]): Contract!
+    createOneSkill(name: String!, contractID: Int): Skill!
+    deleteOneSkill(id: Int!): Skill!
+    updateOneSkill(skillID: Int!, name: String): Skill!
+    updateOneStudent(ownerUsername: String!, groupIDs: [Int!]): Student!
+    createOneContract(end: String!, name: String!, hexColor: String!, start: String!, skillNames: [String!]!): Contract!
+    deleteOneContract(id: Int!): Contract!
+    deleteOneStudent(ownerUsername: String!): Student!
+    upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill!
 }
 
 type AuthPayload {

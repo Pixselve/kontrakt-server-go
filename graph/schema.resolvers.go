@@ -68,6 +68,42 @@ func (r *mutationResolver) CreateOneGroup(ctx context.Context, name string, cont
 	return r.Prisma.Group.CreateOne(db.Group.Name.Set(name), param...).Exec(ctx)
 }
 
+func (r *mutationResolver) UpdateOneContract(ctx context.Context, contractID int, groupIDs []int) (*db.ContractModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) CreateOneSkill(ctx context.Context, name string, contractID *int) (*db.SkillModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteOneSkill(ctx context.Context, id int) (*db.SkillModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateOneSkill(ctx context.Context, skillID int, name *string) (*db.SkillModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateOneStudent(ctx context.Context, ownerUsername string, groupIDs []int) (*db.StudentModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) CreateOneContract(ctx context.Context, end string, name string, hexColor string, start string, skillNames []string) (*db.ContractModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteOneContract(ctx context.Context, id int) (*db.ContractModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteOneStudent(ctx context.Context, ownerUsername string) (*db.StudentModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpsertOneSkillToStudent(ctx context.Context, studentOwnerUsername string, skillID int, mark model.Mark) (*db.StudentSkillModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error) {
 	var params []db.ContractWhereParam
 	if len(groupIds) > 0 {
