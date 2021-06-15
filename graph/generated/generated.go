@@ -38,6 +38,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Contract() ContractResolver
+	Group() GroupResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Skill() SkillResolver
@@ -136,6 +137,10 @@ type ContractResolver interface {
 	Start(ctx context.Context, obj *db.ContractModel) (string, error)
 	Skills(ctx context.Context, obj *db.ContractModel) ([]db.SkillModel, error)
 	Groups(ctx context.Context, obj *db.ContractModel) ([]db.GroupModel, error)
+}
+type GroupResolver interface {
+	Contracts(ctx context.Context, obj *db.GroupModel) ([]db.ContractModel, error)
+	Students(ctx context.Context, obj *db.GroupModel) ([]db.StudentModel, error)
 }
 type MutationResolver interface {
 	Login(ctx context.Context, username string, password string) (*model.AuthPayload, error)
@@ -640,8 +645,8 @@ type Contract {
 type Group {
     id: Int!
     name: String!
-    contracts: [Contract!]!
-    students: [Student!]!
+    contracts: [Contract!]! @goField(forceResolver: true)
+    students: [Student!]! @goField(forceResolver: true)
 }
 
 type Skill {
@@ -1362,13 +1367,13 @@ func (ec *executionContext) _Group_contracts(ctx context.Context, field graphql.
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
-		IsResolver: false,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Contracts(), nil
+		return ec.resolvers.Group().Contracts(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1397,13 +1402,13 @@ func (ec *executionContext) _Group_students(ctx context.Context, field graphql.C
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
-		IsResolver: false,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Students(), nil
+		return ec.resolvers.Group().Students(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3962,23 +3967,41 @@ func (ec *executionContext) _Group(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Group_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Group_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "contracts":
-			out.Values[i] = ec._Group_contracts(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Group_contracts(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "students":
-			out.Values[i] = ec._Group_students(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Group_students(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

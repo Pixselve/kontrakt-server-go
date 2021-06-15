@@ -30,6 +30,14 @@ func (r *contractResolver) Groups(ctx context.Context, obj *db.ContractModel) ([
 	return r.Prisma.Group.FindMany(db.Group.Contracts.Some(db.Contract.ID.Equals(obj.ID))).Exec(ctx)
 }
 
+func (r *groupResolver) Contracts(ctx context.Context, obj *db.GroupModel) ([]db.ContractModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *groupResolver) Students(ctx context.Context, obj *db.GroupModel) ([]db.StudentModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *mutationResolver) Login(ctx context.Context, username string, password string) (*model.AuthPayload, error) {
 	user, err := r.Prisma.User.FindUnique(db.User.Username.Equals(username)).Exec(ctx)
 	if err != nil {
@@ -210,6 +218,9 @@ func (r *teacherResolver) OwnerUsername(ctx context.Context, obj *db.TeacherMode
 // Contract returns generated.ContractResolver implementation.
 func (r *Resolver) Contract() generated.ContractResolver { return &contractResolver{r} }
 
+// Group returns generated.GroupResolver implementation.
+func (r *Resolver) Group() generated.GroupResolver { return &groupResolver{r} }
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -229,6 +240,7 @@ func (r *Resolver) StudentSkill() generated.StudentSkillResolver { return &stude
 func (r *Resolver) Teacher() generated.TeacherResolver { return &teacherResolver{r} }
 
 type contractResolver struct{ *Resolver }
+type groupResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type skillResolver struct{ *Resolver }

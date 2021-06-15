@@ -22,8 +22,8 @@ type Contract {
 type Group {
     id: Int!
     name: String!
-    contracts: [Contract!]!
-    students: [Student!]!
+    contracts: [Contract!]! @goField(forceResolver: true)
+    students: [Student!]! @goField(forceResolver: true)
 }
 
 type Skill {
