@@ -53,7 +53,11 @@ func (r *mutationResolver) Login(ctx context.Context, username string, password 
 }
 
 func (r *mutationResolver) CreateOneGroup(ctx context.Context, name string, contractID *int) (*db.GroupModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	var param []db.GroupSetParam
+	if contractID != nil {
+		param = append(param, db.Group.Contracts.Link(db.Contract.ID.Equals(*contractID)))
+	}
+	return r.Prisma.Group.CreateOne(db.Group.Name.Set(name), param...).Exec(ctx)
 }
 
 func (r *queryResolver) Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error) {
