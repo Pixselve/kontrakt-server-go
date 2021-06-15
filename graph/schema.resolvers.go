@@ -52,6 +52,10 @@ func (r *mutationResolver) Login(ctx context.Context, username string, password 
 	}, nil
 }
 
+func (r *mutationResolver) CreateOneGroup(ctx context.Context, name string, contractID *int) (*db.GroupModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error) {
 	var params []db.ContractWhereParam
 	if len(groupIds) > 0 {

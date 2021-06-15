@@ -75,7 +75,8 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		Login func(childComplexity int, username string, password string) int
+		CreateOneGroup func(childComplexity int, name string, contractID *int) int
+		Login          func(childComplexity int, username string, password string) int
 	}
 
 	Query struct {
@@ -138,6 +139,7 @@ type ContractResolver interface {
 }
 type MutationResolver interface {
 	Login(ctx context.Context, username string, password string) (*model.AuthPayload, error)
+	CreateOneGroup(ctx context.Context, name string, contractID *int) (*db.GroupModel, error)
 }
 type QueryResolver interface {
 	Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error)
@@ -281,6 +283,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Group.Students(childComplexity), true
+
+	case "Mutation.createOneGroup":
+		if e.complexity.Mutation.CreateOneGroup == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createOneGroup_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateOneGroup(childComplexity, args["name"].(string), args["contractID"].(*int)), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
@@ -693,6 +707,7 @@ type Query {
 }
 type Mutation {
     login(username: String!, password: String!): AuthPayload!
+    createOneGroup(name: String!, contractID: Int): Group!
 }
 
 type AuthPayload {
@@ -718,6 +733,30 @@ func (ec *executionContext) dir_hasRole_args(ctx context.Context, rawArgs map[st
 		}
 	}
 	args["role"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createOneGroup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["contractID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contractID"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contractID"] = arg1
 	return args, nil
 }
 
@@ -1421,6 +1460,48 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 	res := resTmp.(*model.AuthPayload)
 	fc.Result = res
 	return ec.marshalNAuthPayload2ᚖkontraktᚑserverᚋgraphᚋmodelᚐAuthPayload(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createOneGroup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createOneGroup_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateOneGroup(rctx, args["name"].(string), args["contractID"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*db.GroupModel)
+	fc.Result = res
+	return ec.marshalNGroup2ᚖkontraktᚑserverᚋprismaᚋdbᚐGroupModel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_contracts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3929,6 +4010,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "createOneGroup":
+			out.Values[i] = ec._Mutation_createOneGroup(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4766,6 +4852,16 @@ func (ec *executionContext) marshalNGroup2ᚕkontraktᚑserverᚋprismaᚋdbᚐG
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) marshalNGroup2ᚖkontraktᚑserverᚋprismaᚋdbᚐGroupModel(ctx context.Context, sel ast.SelectionSet, v *db.GroupModel) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Group(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
