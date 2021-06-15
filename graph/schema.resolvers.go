@@ -31,11 +31,11 @@ func (r *contractResolver) Groups(ctx context.Context, obj *db.ContractModel) ([
 }
 
 func (r *groupResolver) Contracts(ctx context.Context, obj *db.GroupModel) ([]db.ContractModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Contract.FindMany(db.Contract.Groups.Some(db.Group.ID.Equals(obj.ID))).Exec(ctx)
 }
 
 func (r *groupResolver) Students(ctx context.Context, obj *db.GroupModel) ([]db.StudentModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Student.FindMany(db.Student.Groups.Some(db.Group.ID.Equals(obj.ID))).Exec(ctx)
 }
 
 func (r *mutationResolver) Login(ctx context.Context, username string, password string) (*model.AuthPayload, error) {
