@@ -83,7 +83,7 @@ func (r *mutationResolver) DeleteOneSkill(ctx context.Context, id int) (*db.Skil
 }
 
 func (r *mutationResolver) UpdateOneSkill(ctx context.Context, skillID int, name *string) (*db.SkillModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Skill.FindUnique(db.Skill.ID.Equals(skillID)).Update(db.Skill.Name.SetIfPresent(name)).Exec(ctx)
 }
 
 func (r *mutationResolver) UpdateOneStudent(ctx context.Context, ownerUsername string, groupIDs []int) (*db.StudentModel, error) {
