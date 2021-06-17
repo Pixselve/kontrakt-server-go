@@ -45,6 +45,7 @@ type ResolverRoot interface {
 	Student() StudentResolver
 	StudentSkill() StudentSkillResolver
 	Teacher() TeacherResolver
+	__Directive() __DirectiveResolver
 }
 
 type DirectiveRoot struct {
@@ -78,7 +79,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateOneContract       func(childComplexity int, end string, name string, hexColor string, start string, skillNames []string) int
 		CreateOneGroup          func(childComplexity int, name string, contractID *int) int
-		CreateOneSkill          func(childComplexity int, name string, contractID *int) int
+		CreateOneSkill          func(childComplexity int, name string, contractID int) int
 		DeleteOneContract       func(childComplexity int, id int) int
 		DeleteOneSkill          func(childComplexity int, id int) int
 		DeleteOneStudent        func(childComplexity int, ownerUsername string) int
@@ -155,7 +156,7 @@ type MutationResolver interface {
 	Login(ctx context.Context, username string, password string) (*model.AuthPayload, error)
 	CreateOneGroup(ctx context.Context, name string, contractID *int) (*db.GroupModel, error)
 	UpdateOneContract(ctx context.Context, contractID int, groupIDs []int) (*db.ContractModel, error)
-	CreateOneSkill(ctx context.Context, name string, contractID *int) (*db.SkillModel, error)
+	CreateOneSkill(ctx context.Context, name string, contractID int) (*db.SkillModel, error)
 	DeleteOneSkill(ctx context.Context, id int) (*db.SkillModel, error)
 	UpdateOneSkill(ctx context.Context, skillID int, name *string) (*db.SkillModel, error)
 	UpdateOneStudent(ctx context.Context, ownerUsername string, groupIDs []int) (*db.StudentModel, error)
@@ -192,6 +193,9 @@ type StudentSkillResolver interface {
 type TeacherResolver interface {
 	Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error)
 	OwnerUsername(ctx context.Context, obj *db.TeacherModel) (string, error)
+}
+type __DirectiveResolver interface {
+	IsRepeatable(ctx context.Context, obj *introspection.Directive) (bool, error)
 }
 
 type executableSchema struct {
@@ -341,7 +345,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateOneSkill(childComplexity, args["name"].(string), args["contractID"].(*int)), true
+		return e.complexity.Mutation.CreateOneSkill(childComplexity, args["name"].(string), args["contractID"].(int)), true
 
 	case "Mutation.deleteOneContract":
 		if e.complexity.Mutation.DeleteOneContract == nil {
@@ -840,7 +844,7 @@ type Mutation {
     login(username: String!, password: String!): AuthPayload!
     createOneGroup(name: String!, contractID: Int): Group!
     updateOneContract(contractID: Int!, groupIDs: [Int!]): Contract!
-    createOneSkill(name: String!, contractID: Int): Skill!
+    createOneSkill(name: String!, contractID: Int!): Skill!
     deleteOneSkill(id: Int!): Skill!
     updateOneSkill(skillID: Int!, name: String): Skill!
     updateOneStudent(ownerUsername: String!, groupIDs: [Int!]): Student!
@@ -963,10 +967,10 @@ func (ec *executionContext) field_Mutation_createOneSkill_args(ctx context.Conte
 		}
 	}
 	args["name"] = arg0
-	var arg1 *int
+	var arg1 int
 	if tmp, ok := rawArgs["contractID"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contractID"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1936,7 +1940,7 @@ func (ec *executionContext) _Mutation_createOneSkill(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateOneSkill(rctx, args["name"].(string), args["contractID"].(*int))
+		return ec.resolvers.Mutation().CreateOneSkill(rctx, args["name"].(string), args["contractID"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3601,6 +3605,41 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 	res := resTmp.([]introspection.InputValue)
 	fc.Result = res
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.__Directive().IsRepeatable(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql.CollectedField, obj *introspection.EnumValue) (ret graphql.Marshaler) {
@@ -5308,20 +5347,34 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 		case "name":
 			out.Values[i] = ec.___Directive_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec.___Directive_description(ctx, field, obj)
 		case "locations":
 			out.Values[i] = ec.___Directive_locations(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "args":
 			out.Values[i] = ec.___Directive_args(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
+		case "isRepeatable":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec.___Directive_isRepeatable(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
