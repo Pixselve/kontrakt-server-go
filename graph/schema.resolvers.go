@@ -129,7 +129,11 @@ func (r *mutationResolver) DeleteOneStudent(ctx context.Context, ownerUsername s
 }
 
 func (r *mutationResolver) UpsertOneSkillToStudent(ctx context.Context, studentOwnerUsername string, skillID int, mark model.Mark) (*db.StudentSkillModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.StudentSkill.UpsertOne(db.StudentSkill.StudentIDSkillID(db.StudentSkill.StudentID.Equals(studentOwnerUsername), db.StudentSkill.SkillID.Equals(skillID))).Update(db.StudentSkill.Mark.Set(db.Mark(mark))).Create(
+		db.StudentSkill.Mark.Set(db.Mark(mark)),
+		db.StudentSkill.Skill.Link(db.Skill.ID.Equals(skillID)),
+		db.StudentSkill.Student.Link(db.Student.OwnerID.Equals(studentOwnerUsername)),
+	).Exec(ctx)
 }
 
 func (r *queryResolver) Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error) {
