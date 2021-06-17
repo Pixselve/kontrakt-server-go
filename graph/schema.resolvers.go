@@ -6,10 +6,12 @@ package graph
 import (
 	"context"
 	"fmt"
+	"github.com/prisma/prisma-client-go/runtime/transaction"
 	"kontrakt-server/graph/generated"
 	"kontrakt-server/graph/model"
 	"kontrakt-server/prisma/db"
 	"kontrakt-server/utils"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -89,7 +91,33 @@ func (r *mutationResolver) UpdateOneStudent(ctx context.Context, ownerUsername s
 }
 
 func (r *mutationResolver) CreateOneContract(ctx context.Context, end string, name string, hexColor string, start string, skillNames []string) (*db.ContractModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	startTime, err := time.Parse("2006-01-02", start)
+	if err != nil {
+		return nil, err
+	}
+	endTime, err := time.Parse("2006-01-02", end)
+	if err != nil {
+		return nil, err
+	}
+
+	contract, err := r.Prisma.Contract.CreateOne(
+		db.Contract.End.Set(endTime),
+		db.Contract.Name.Set(name),
+		db.Contract.HexColor.Set(hexColor),
+		db.Contract.Start.Set(startTime),
+	).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var skillsTransactions []transaction.Param
+	for _, skillName := range skillNames {
+		skillsTransactions = append(skillsTransactions, r.Prisma.Skill.CreateOne(db.Skill.Name.Set(skillName), db.Skill.Contract.Link(db.Contract.ID.Equals(contract.ID))).Tx())
+	}
+	if err := r.Prisma.Prisma.Transaction(skillsTransactions...).Exec(ctx); err != nil {
+		return nil, err
+	}
+	return contract, nil
 }
 
 func (r *mutationResolver) DeleteOneContract(ctx context.Context, id int) (*db.ContractModel, error) {
