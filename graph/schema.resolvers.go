@@ -93,7 +93,7 @@ func (r *mutationResolver) CreateOneContract(ctx context.Context, end string, na
 }
 
 func (r *mutationResolver) DeleteOneContract(ctx context.Context, id int) (*db.ContractModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Contract.FindUnique(db.Contract.ID.Equals(id)).Delete().Exec(ctx)
 }
 
 func (r *mutationResolver) DeleteOneStudent(ctx context.Context, ownerUsername string) (*db.StudentModel, error) {
