@@ -87,7 +87,8 @@ func (r *mutationResolver) UpdateOneSkill(ctx context.Context, skillID int, name
 }
 
 func (r *mutationResolver) UpdateOneStudent(ctx context.Context, ownerUsername string, groupIDs []int) (*db.StudentModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(ownerUsername)).Update(db.Student.Groups.Link(db.Group.ID.In(groupIDs)), db.Student.Groups.Unlink(db.Group.Not(db.Group.ID.In(groupIDs)))).Exec(ctx)
+
 }
 
 func (r *mutationResolver) CreateOneContract(ctx context.Context, end string, name string, hexColor string, start string, skillNames []string) (*db.ContractModel, error) {
