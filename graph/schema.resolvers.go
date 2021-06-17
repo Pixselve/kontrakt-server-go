@@ -6,13 +6,13 @@ package graph
 import (
 	"context"
 	"fmt"
-	"github.com/prisma/prisma-client-go/runtime/transaction"
 	"kontrakt-server/graph/generated"
 	"kontrakt-server/graph/model"
 	"kontrakt-server/prisma/db"
 	"kontrakt-server/utils"
 	"time"
 
+	"github.com/prisma/prisma-client-go/runtime/transaction"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -74,8 +74,8 @@ func (r *mutationResolver) UpdateOneContract(ctx context.Context, contractID int
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) CreateOneSkill(ctx context.Context, name string, contractID *int) (*db.SkillModel, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) CreateOneSkill(ctx context.Context, name string, contractID int) (*db.SkillModel, error) {
+	return r.Prisma.Skill.CreateOne(db.Skill.Name.Set(name), db.Skill.Contract.Link(db.Contract.ID.Equals(contractID))).Exec(ctx)
 }
 
 func (r *mutationResolver) DeleteOneSkill(ctx context.Context, id int) (*db.SkillModel, error) {
@@ -88,7 +88,6 @@ func (r *mutationResolver) UpdateOneSkill(ctx context.Context, skillID int, name
 
 func (r *mutationResolver) UpdateOneStudent(ctx context.Context, ownerUsername string, groupIDs []int) (*db.StudentModel, error) {
 	return r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(ownerUsername)).Update(db.Student.Groups.Link(db.Group.ID.In(groupIDs)), db.Student.Groups.Unlink(db.Group.Not(db.Group.ID.In(groupIDs)))).Exec(ctx)
-
 }
 
 func (r *mutationResolver) CreateOneContract(ctx context.Context, end string, name string, hexColor string, start string, skillNames []string) (*db.ContractModel, error) {
