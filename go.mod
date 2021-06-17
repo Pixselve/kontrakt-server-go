@@ -12,8 +12,11 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/prisma/prisma-client-go v0.9.0
+	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/takuoki/gocase v1.0.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.2.0
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 )
