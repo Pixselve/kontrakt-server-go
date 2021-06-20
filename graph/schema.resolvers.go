@@ -140,7 +140,8 @@ func (r *mutationResolver) CreateOneContract(ctx context.Context, end string, na
 }
 
 func (r *mutationResolver) DeleteOneContract(ctx context.Context, id int) (*db.ContractModel, error) {
-	_, err := r.Prisma.Skill.FindMany(db.Skill.ContractID.Equals(id)).Delete().Exec(ctx)
+
+	err := r.Prisma.Prisma.Transaction(r.Prisma.StudentSkill.FindMany(db.StudentSkill.Skill.Where(db.Skill.ContractID.Equals(id))).Delete().Tx(), r.Prisma.Skill.FindMany(db.Skill.ContractID.Equals(id)).Delete().Tx()).Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
