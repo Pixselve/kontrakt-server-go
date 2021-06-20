@@ -87,7 +87,26 @@ func (r *mutationResolver) UpdateOneSkill(ctx context.Context, skillID int, name
 }
 
 func (r *mutationResolver) UpdateOneStudent(ctx context.Context, ownerUsername string, groupIDs []int) (*db.StudentModel, error) {
-	return r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(ownerUsername)).Update(db.Student.Groups.Link(db.Group.ID.In(groupIDs)), db.Student.Groups.Unlink(db.Group.Not(db.Group.ID.In(groupIDs)))).Exec(ctx)
+	toLink, err := r.Prisma.Group.FindMany(db.Group.ID.In(groupIDs), db.Group.Not(db.Group.Students.Some(db.Student.OwnerID.Equals(ownerUsername)))).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	toUnLink, err := r.Prisma.Group.FindMany(db.Group.Not(db.Group.ID.In(groupIDs)), db.Group.Students.Some(db.Student.OwnerID.Equals(ownerUsername))).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var transactions []transaction.Param
+	for _, groupModel := range toUnLink {
+		transactions = append(transactions, r.Prisma.Group.FindUnique(db.Group.ID.Equals(groupModel.ID)).Update(db.Group.Students.Unlink(db.Student.OwnerID.Equals(ownerUsername))).Tx())
+	}
+	for _, groupModel := range toLink {
+		transactions = append(transactions, r.Prisma.Group.FindUnique(db.Group.ID.Equals(groupModel.ID)).Update(db.Group.Students.Link(db.Student.OwnerID.Equals(ownerUsername))).Tx())
+	}
+	err = r.Prisma.Prisma.Transaction(transactions...).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(ownerUsername)).Exec(ctx)
 }
 
 func (r *mutationResolver) CreateOneContract(ctx context.Context, end string, name string, hexColor string, start string, skillNames []string) (*db.ContractModel, error) {
