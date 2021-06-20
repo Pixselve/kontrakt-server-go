@@ -71,7 +71,26 @@ func (r *mutationResolver) CreateOneGroup(ctx context.Context, name string, cont
 }
 
 func (r *mutationResolver) UpdateOneContract(ctx context.Context, contractID int, groupIDs []int) (*db.ContractModel, error) {
-	return r.Prisma.Contract.FindUnique(db.Contract.ID.Equals(contractID)).Update(db.Contract.Groups.Link(db.Group.ID.In(groupIDs)), db.Contract.Groups.Unlink(db.Group.Not(db.Group.ID.In(groupIDs)))).Exec(ctx)
+	toLink, err := r.Prisma.Group.FindMany(db.Group.ID.In(groupIDs), db.Group.Not(db.Group.Contracts.Some(db.Contract.ID.Equals(contractID)))).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	toUnLink, err := r.Prisma.Group.FindMany(db.Group.Not(db.Group.ID.In(groupIDs)), db.Group.Contracts.Some(db.Contract.ID.Equals(contractID))).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var transactions []transaction.Param
+	for _, groupModel := range toUnLink {
+		transactions = append(transactions, r.Prisma.Group.FindUnique(db.Group.ID.Equals(groupModel.ID)).Update(db.Group.Contracts.Unlink(db.Contract.ID.Equals(contractID))).Tx())
+	}
+	for _, groupModel := range toLink {
+		transactions = append(transactions, r.Prisma.Group.FindUnique(db.Group.ID.Equals(groupModel.ID)).Update(db.Group.Contracts.Link(db.Contract.ID.Equals(contractID))).Tx())
+	}
+	err = r.Prisma.Prisma.Transaction(transactions...).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.Prisma.Contract.FindUnique(db.Contract.ID.Equals(contractID)).Exec(ctx)
 }
 
 func (r *mutationResolver) CreateOneSkill(ctx context.Context, name string, contractID int) (*db.SkillModel, error) {
