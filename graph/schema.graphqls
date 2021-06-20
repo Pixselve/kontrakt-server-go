@@ -82,7 +82,7 @@ type Query {
     groups: [Group!]!
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
-    students: [Student!]!
+    students(contractID: Int): [Student!]!
     teachers: [Teacher!]!
     me: User!
     studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]!

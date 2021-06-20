@@ -16,11 +16,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (r *contractResolver) End(_ context.Context, obj *db.ContractModel) (string, error) {
+func (r *contractResolver) End(ctx context.Context, obj *db.ContractModel) (string, error) {
 	return obj.End.String(), nil
 }
 
-func (r *contractResolver) Start(_ context.Context, obj *db.ContractModel) (string, error) {
+func (r *contractResolver) Start(ctx context.Context, obj *db.ContractModel) (string, error) {
 	return obj.Start.String(), nil
 }
 
@@ -159,7 +159,6 @@ func (r *mutationResolver) CreateOneContract(ctx context.Context, end string, na
 }
 
 func (r *mutationResolver) DeleteOneContract(ctx context.Context, id int) (*db.ContractModel, error) {
-
 	err := r.Prisma.Prisma.Transaction(r.Prisma.StudentSkill.FindMany(db.StudentSkill.Skill.Where(db.Skill.ContractID.Equals(id))).Delete().Tx(), r.Prisma.Skill.FindMany(db.Skill.ContractID.Equals(id)).Delete().Tx()).Exec(ctx)
 	if err != nil {
 		return nil, err
@@ -199,15 +198,15 @@ func (r *queryResolver) Contract(ctx context.Context, id int) (*db.ContractModel
 	return r.Prisma.Contract.FindUnique(db.Contract.ID.Equals(id)).Exec(ctx)
 }
 
-func (r *queryResolver) Students(ctx context.Context) ([]db.StudentModel, error) {
-	return r.Prisma.Student.FindMany().Exec(ctx)
+func (r *queryResolver) Students(ctx context.Context, contractID *int) ([]db.StudentModel, error) {
+	return r.Prisma.Student.FindMany(db.Student.Groups.Some(db.Group.Contracts.Some(db.Contract.ID.EqualsIfPresent(contractID)))).Exec(ctx)
 }
 
 func (r *queryResolver) Teachers(ctx context.Context) ([]db.TeacherModel, error) {
 	return r.Prisma.Teacher.FindMany().Exec(ctx)
 }
 
-func (r *queryResolver) Me(_ context.Context) (*model.User, error) {
+func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -268,7 +267,7 @@ func (r *studentResolver) Owner(ctx context.Context, obj *db.StudentModel) (*mod
 	}, nil
 }
 
-func (r *studentResolver) OwnerUsername(_ context.Context, obj *db.StudentModel) (string, error) {
+func (r *studentResolver) OwnerUsername(ctx context.Context, obj *db.StudentModel) (string, error) {
 	return obj.OwnerID, nil
 }
 
@@ -299,7 +298,7 @@ func (r *studentResolver) Groups(ctx context.Context, obj *db.StudentModel) ([]d
 	return r.Prisma.Group.FindMany(db.Group.Students.Some(db.Student.OwnerID.Equals(obj.OwnerID))).Exec(ctx)
 }
 
-func (r *studentSkillResolver) Mark(_ context.Context, obj *db.StudentSkillModel) (model.Mark, error) {
+func (r *studentSkillResolver) Mark(ctx context.Context, obj *db.StudentSkillModel) (model.Mark, error) {
 	return model.Mark(obj.Mark), nil
 }
 
@@ -322,7 +321,7 @@ func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*mod
 	}, nil
 }
 
-func (r *teacherResolver) OwnerUsername(_ context.Context, obj *db.TeacherModel) (string, error) {
+func (r *teacherResolver) OwnerUsername(ctx context.Context, obj *db.TeacherModel) (string, error) {
 	return obj.OwnerID, nil
 }
 

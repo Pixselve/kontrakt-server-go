@@ -96,7 +96,7 @@ type ComplexityRoot struct {
 		Me            func(childComplexity int) int
 		Student       func(childComplexity int, ownerUsername string) int
 		StudentSkills func(childComplexity int, studentUsername string, contractID *int) int
-		Students      func(childComplexity int) int
+		Students      func(childComplexity int, contractID *int) int
 		Teachers      func(childComplexity int) int
 	}
 
@@ -169,7 +169,7 @@ type QueryResolver interface {
 	Groups(ctx context.Context) ([]db.GroupModel, error)
 	Student(ctx context.Context, ownerUsername string) (*db.StudentModel, error)
 	Contract(ctx context.Context, id int) (*db.ContractModel, error)
-	Students(ctx context.Context) ([]db.StudentModel, error)
+	Students(ctx context.Context, contractID *int) ([]db.StudentModel, error)
 	Teachers(ctx context.Context) ([]db.TeacherModel, error)
 	Me(ctx context.Context) (*model.User, error)
 	StudentSkills(ctx context.Context, studentUsername string, contractID *int) ([]db.StudentSkillModel, error)
@@ -506,7 +506,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Students(childComplexity), true
+		args, err := ec.field_Query_students_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Students(childComplexity, args["contractID"].(*int)), true
 
 	case "Query.teachers":
 		if e.complexity.Query.Teachers == nil {
@@ -831,7 +836,7 @@ type Query {
     groups: [Group!]!
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
-    students: [Student!]!
+    students(contractID: Int): [Student!]!
     teachers: [Teacher!]!
     me: User!
     studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]!
@@ -1230,6 +1235,21 @@ func (ec *executionContext) field_Query_student_args(ctx context.Context, rawArg
 		}
 	}
 	args["ownerUsername"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_students_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["contractID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contractID"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contractID"] = arg0
 	return args, nil
 }
 
@@ -2424,9 +2444,16 @@ func (ec *executionContext) _Query_students(ctx context.Context, field graphql.C
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_students_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Students(rctx)
+		return ec.resolvers.Query().Students(rctx, args["contractID"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
