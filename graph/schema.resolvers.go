@@ -199,7 +199,11 @@ func (r *queryResolver) Contract(ctx context.Context, id int) (*db.ContractModel
 }
 
 func (r *queryResolver) Students(ctx context.Context, contractID *int) ([]db.StudentModel, error) {
-	return r.Prisma.Student.FindMany(db.Student.Groups.Some(db.Group.Contracts.Some(db.Contract.ID.EqualsIfPresent(contractID)))).Exec(ctx)
+	var param []db.StudentWhereParam
+	if contractID != nil {
+		param = append(param, db.Student.Groups.Some(db.Group.Contracts.Some(db.Contract.ID.EqualsIfPresent(contractID))))
+	}
+	return r.Prisma.Student.FindMany(param...).Exec(ctx)
 }
 
 func (r *queryResolver) Teachers(ctx context.Context) ([]db.TeacherModel, error) {
