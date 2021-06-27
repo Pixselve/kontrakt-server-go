@@ -335,11 +335,11 @@ func (r *teacherResolver) OwnerUsername(ctx context.Context, obj *db.TeacherMode
 }
 
 func (r *userResolver) Student(ctx context.Context, obj *model.User) ([]db.StudentModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Student.FindMany(db.Student.OwnerID.Equals(obj.Username)).Exec(ctx)
 }
 
 func (r *userResolver) Teacher(ctx context.Context, obj *model.User) ([]db.TeacherModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Prisma.Teacher.FindMany(db.Teacher.OwnerID.Equals(obj.Username)).Exec(ctx)
 }
 
 // Contract returns generated.ContractResolver implementation.
