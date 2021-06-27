@@ -45,6 +45,7 @@ type ResolverRoot interface {
 	Student() StudentResolver
 	StudentSkill() StudentSkillResolver
 	Teacher() TeacherResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
@@ -193,6 +194,10 @@ type StudentSkillResolver interface {
 type TeacherResolver interface {
 	Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error)
 	OwnerUsername(ctx context.Context, obj *db.TeacherModel) (string, error)
+}
+type UserResolver interface {
+	Student(ctx context.Context, obj *model.User) ([]db.StudentModel, error)
+	Teacher(ctx context.Context, obj *model.User) ([]db.TeacherModel, error)
 }
 
 type executableSchema struct {
@@ -817,8 +822,8 @@ type Teacher {
 type User {
     username: String!
     role: Role!
-    student: [Student!]!
-    teacher: [Teacher!]!
+    student: [Student!]! @goField(forceResolver: true)
+    teacher: [Teacher!]! @goField(forceResolver: true)
 }
 
 enum Role {
@@ -3456,14 +3461,14 @@ func (ec *executionContext) _User_student(ctx context.Context, field graphql.Col
 		Object:     "User",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Student, nil
+		return ec.resolvers.User().Student(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3491,14 +3496,14 @@ func (ec *executionContext) _User_teacher(ctx context.Context, field graphql.Col
 		Object:     "User",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Teacher, nil
+		return ec.resolvers.User().Teacher(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5315,23 +5320,41 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "username":
 			out.Values[i] = ec._User_username(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "role":
 			out.Values[i] = ec._User_role(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "student":
-			out.Values[i] = ec._User_student(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_student(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "teacher":
-			out.Values[i] = ec._User_teacher(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_teacher(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

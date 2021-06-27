@@ -62,8 +62,8 @@ type Teacher {
 type User {
     username: String!
     role: Role!
-    student: [Student!]!
-    teacher: [Teacher!]!
+    student: [Student!]! @goField(forceResolver: true)
+    teacher: [Teacher!]! @goField(forceResolver: true)
 }
 
 enum Role {

@@ -17,11 +17,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (r *contractResolver) End(_ context.Context, obj *db.ContractModel) (string, error) {
+func (r *contractResolver) End(ctx context.Context, obj *db.ContractModel) (string, error) {
 	return obj.End.String(), nil
 }
 
-func (r *contractResolver) Start(_ context.Context, obj *db.ContractModel) (string, error) {
+func (r *contractResolver) Start(ctx context.Context, obj *db.ContractModel) (string, error) {
 	return obj.Start.String(), nil
 }
 
@@ -276,7 +276,7 @@ func (r *studentResolver) Owner(ctx context.Context, obj *db.StudentModel) (*mod
 	}, nil
 }
 
-func (r *studentResolver) OwnerUsername(_ context.Context, obj *db.StudentModel) (string, error) {
+func (r *studentResolver) OwnerUsername(ctx context.Context, obj *db.StudentModel) (string, error) {
 	return obj.OwnerID, nil
 }
 
@@ -307,7 +307,7 @@ func (r *studentResolver) Groups(ctx context.Context, obj *db.StudentModel) ([]d
 	return r.Prisma.Group.FindMany(db.Group.Students.Some(db.Student.OwnerID.Equals(obj.OwnerID))).Exec(ctx)
 }
 
-func (r *studentSkillResolver) Mark(_ context.Context, obj *db.StudentSkillModel) (model.Mark, error) {
+func (r *studentSkillResolver) Mark(ctx context.Context, obj *db.StudentSkillModel) (model.Mark, error) {
 	return model.Mark(obj.Mark), nil
 }
 
@@ -330,8 +330,16 @@ func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*mod
 	}, nil
 }
 
-func (r *teacherResolver) OwnerUsername(_ context.Context, obj *db.TeacherModel) (string, error) {
+func (r *teacherResolver) OwnerUsername(ctx context.Context, obj *db.TeacherModel) (string, error) {
 	return obj.OwnerID, nil
+}
+
+func (r *userResolver) Student(ctx context.Context, obj *model.User) ([]db.StudentModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userResolver) Teacher(ctx context.Context, obj *model.User) ([]db.TeacherModel, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Contract returns generated.ContractResolver implementation.
@@ -358,6 +366,9 @@ func (r *Resolver) StudentSkill() generated.StudentSkillResolver { return &stude
 // Teacher returns generated.TeacherResolver implementation.
 func (r *Resolver) Teacher() generated.TeacherResolver { return &teacherResolver{r} }
 
+// User returns generated.UserResolver implementation.
+func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+
 type contractResolver struct{ *Resolver }
 type groupResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
@@ -366,3 +377,4 @@ type skillResolver struct{ *Resolver }
 type studentResolver struct{ *Resolver }
 type studentSkillResolver struct{ *Resolver }
 type teacherResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }
