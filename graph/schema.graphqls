@@ -3,6 +3,7 @@
 # https://gqlgen.com/getting-started/
 
 directive @hasRole(role: Role!) on FIELD_DEFINITION
+directive @isLoggedIn on FIELD_DEFINITION
 directive @goField(
     forceResolver: Boolean
     name: String
@@ -84,7 +85,7 @@ type Query {
     contract(id: Int!): Contract!
     students(contractID: Int): [Student!]!
     teachers: [Teacher!]!
-    me: User!
+    me: User! @isLoggedIn
     studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]!
 }
 type Mutation {
