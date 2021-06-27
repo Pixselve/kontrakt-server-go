@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"kontrakt-server/graph/auth"
 	"kontrakt-server/graph/generated"
 	"kontrakt-server/graph/model"
 	"kontrakt-server/prisma/db"
@@ -211,7 +212,11 @@ func (r *queryResolver) Teachers(ctx context.Context) ([]db.TeacherModel, error)
 }
 
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	user := auth.ForContext(ctx)
+	return &model.User{
+		Username: user.Username,
+		Role:     model.Role(user.Role),
+	}, nil
 }
 
 func (r *queryResolver) StudentSkills(ctx context.Context, studentUsername string, contractID *int) ([]db.StudentSkillModel, error) {
