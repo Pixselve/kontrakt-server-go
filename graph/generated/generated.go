@@ -854,27 +854,27 @@ enum Mark {
 
 type Query {
     contracts(groupIds: [Int!]): [Contract!]!
-    groups: [Group!]!
+    groups: [Group!]! 
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
-    students(contractID: Int): [Student!]!
-    teachers: [Teacher!]!
+    students(contractID: Int): [Student!]! @hasRole(role: TEACHER)
+    teachers: [Teacher!]! @hasRole(role: TEACHER)
     me: User! @isLoggedIn
-    studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]!
+    studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]! @hasRole(role: TEACHER)
 }
 type Mutation {
     login(username: String!, password: String!): AuthPayload!
-    createOneGroup(name: String!, contractID: Int): Group!
-    updateOneContract(contractID: Int!, groupIDs: [Int!]): Contract!
-    createOneSkill(name: String!, contractID: Int!): Skill!
-    deleteOneSkill(id: Int!): Skill!
-    updateOneSkill(skillID: Int!, name: String): Skill!
-    updateOneStudent(ownerUsername: String!, groupIDs: [Int!]): Student!
-    createOneContract(end: String!, name: String!, hexColor: String!, start: String!, skillNames: [String!]!): Contract!
-    deleteOneContract(id: Int!): Contract!
-    deleteOneStudent(ownerUsername: String!): Student!
-    upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill!
-    createOneStudent(student: StudentInput!, user: UserInput!): Student!
+    createOneGroup(name: String!, contractID: Int): Group! @hasRole(role: TEACHER)
+    updateOneContract(contractID: Int!, groupIDs: [Int!]): Contract! @hasRole(role: TEACHER)
+    createOneSkill(name: String!, contractID: Int!): Skill! @hasRole(role: TEACHER)
+    deleteOneSkill(id: Int!): Skill! @hasRole(role: TEACHER)
+    updateOneSkill(skillID: Int!, name: String): Skill! @hasRole(role: TEACHER)
+    updateOneStudent(ownerUsername: String!, groupIDs: [Int!]): Student! @hasRole(role: TEACHER)
+    createOneContract(end: String!, name: String!, hexColor: String!, start: String!, skillNames: [String!]!): Contract! @hasRole(role: TEACHER)
+    deleteOneContract(id: Int!): Contract! @hasRole(role: TEACHER)
+    deleteOneStudent(ownerUsername: String!): Student! @hasRole(role: TEACHER)
+    upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill! @hasRole(role: TEACHER)
+    createOneStudent(student: StudentInput!, user: UserInput!): Student! @hasRole(role: TEACHER)
 }
 
 input StudentInput {
@@ -1925,8 +1925,32 @@ func (ec *executionContext) _Mutation_createOneGroup(ctx context.Context, field 
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateOneGroup(rctx, args["name"].(string), args["contractID"].(*int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateOneGroup(rctx, args["name"].(string), args["contractID"].(*int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.GroupModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.GroupModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1967,8 +1991,32 @@ func (ec *executionContext) _Mutation_updateOneContract(ctx context.Context, fie
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateOneContract(rctx, args["contractID"].(int), args["groupIDs"].([]int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateOneContract(rctx, args["contractID"].(int), args["groupIDs"].([]int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.ContractModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.ContractModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2009,8 +2057,32 @@ func (ec *executionContext) _Mutation_createOneSkill(ctx context.Context, field 
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateOneSkill(rctx, args["name"].(string), args["contractID"].(int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateOneSkill(rctx, args["name"].(string), args["contractID"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.SkillModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.SkillModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2051,8 +2123,32 @@ func (ec *executionContext) _Mutation_deleteOneSkill(ctx context.Context, field 
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteOneSkill(rctx, args["id"].(int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteOneSkill(rctx, args["id"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.SkillModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.SkillModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2093,8 +2189,32 @@ func (ec *executionContext) _Mutation_updateOneSkill(ctx context.Context, field 
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateOneSkill(rctx, args["skillID"].(int), args["name"].(*string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateOneSkill(rctx, args["skillID"].(int), args["name"].(*string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.SkillModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.SkillModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2135,8 +2255,32 @@ func (ec *executionContext) _Mutation_updateOneStudent(ctx context.Context, fiel
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateOneStudent(rctx, args["ownerUsername"].(string), args["groupIDs"].([]int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateOneStudent(rctx, args["ownerUsername"].(string), args["groupIDs"].([]int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.StudentModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.StudentModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2177,8 +2321,32 @@ func (ec *executionContext) _Mutation_createOneContract(ctx context.Context, fie
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateOneContract(rctx, args["end"].(string), args["name"].(string), args["hexColor"].(string), args["start"].(string), args["skillNames"].([]string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateOneContract(rctx, args["end"].(string), args["name"].(string), args["hexColor"].(string), args["start"].(string), args["skillNames"].([]string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.ContractModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.ContractModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2219,8 +2387,32 @@ func (ec *executionContext) _Mutation_deleteOneContract(ctx context.Context, fie
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteOneContract(rctx, args["id"].(int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteOneContract(rctx, args["id"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.ContractModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.ContractModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2261,8 +2453,32 @@ func (ec *executionContext) _Mutation_deleteOneStudent(ctx context.Context, fiel
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteOneStudent(rctx, args["ownerUsername"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteOneStudent(rctx, args["ownerUsername"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.StudentModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.StudentModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2303,8 +2519,32 @@ func (ec *executionContext) _Mutation_upsertOneSkillToStudent(ctx context.Contex
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpsertOneSkillToStudent(rctx, args["studentOwnerUsername"].(string), args["skillID"].(int), args["mark"].(model.Mark))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpsertOneSkillToStudent(rctx, args["studentOwnerUsername"].(string), args["skillID"].(int), args["mark"].(model.Mark))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.StudentSkillModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.StudentSkillModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2345,8 +2585,32 @@ func (ec *executionContext) _Mutation_createOneStudent(ctx context.Context, fiel
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateOneStudent(rctx, args["student"].(model.StudentInput), args["user"].(model.UserInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateOneStudent(rctx, args["student"].(model.StudentInput), args["user"].(model.UserInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.StudentModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.StudentModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2548,8 +2812,32 @@ func (ec *executionContext) _Query_students(ctx context.Context, field graphql.C
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Students(rctx, args["contractID"].(*int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Students(rctx, args["contractID"].(*int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]db.StudentModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []kontrakt-server/prisma/db.StudentModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2583,8 +2871,32 @@ func (ec *executionContext) _Query_teachers(ctx context.Context, field graphql.C
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Teachers(rctx)
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Teachers(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]db.TeacherModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []kontrakt-server/prisma/db.TeacherModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2680,8 +2992,32 @@ func (ec *executionContext) _Query_studentSkills(ctx context.Context, field grap
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().StudentSkills(rctx, args["studentUsername"].(string), args["contractID"].(*int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().StudentSkills(rctx, args["studentUsername"].(string), args["contractID"].(*int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]db.StudentSkillModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []kontrakt-server/prisma/db.StudentSkillModel`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)

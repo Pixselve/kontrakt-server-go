@@ -83,24 +83,24 @@ type Query {
     groups: [Group!]!
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
-    students(contractID: Int): [Student!]!
-    teachers: [Teacher!]!
+    students(contractID: Int): [Student!]! @hasRole(role: TEACHER)
+    teachers: [Teacher!]! @hasRole(role: TEACHER)
     me: User! @isLoggedIn
-    studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]!
+    studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]! @hasRole(role: TEACHER)
 }
 type Mutation {
     login(username: String!, password: String!): AuthPayload!
-    createOneGroup(name: String!, contractID: Int): Group!
-    updateOneContract(contractID: Int!, groupIDs: [Int!]): Contract!
-    createOneSkill(name: String!, contractID: Int!): Skill!
-    deleteOneSkill(id: Int!): Skill!
-    updateOneSkill(skillID: Int!, name: String): Skill!
-    updateOneStudent(ownerUsername: String!, groupIDs: [Int!]): Student!
-    createOneContract(end: String!, name: String!, hexColor: String!, start: String!, skillNames: [String!]!): Contract!
-    deleteOneContract(id: Int!): Contract!
-    deleteOneStudent(ownerUsername: String!): Student!
-    upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill!
-    createOneStudent(student: StudentInput!, user: UserInput!): Student!
+    createOneGroup(name: String!, contractID: Int): Group! @hasRole(role: TEACHER)
+    updateOneContract(contractID: Int!, groupIDs: [Int!]): Contract! @hasRole(role: TEACHER)
+    createOneSkill(name: String!, contractID: Int!): Skill! @hasRole(role: TEACHER)
+    deleteOneSkill(id: Int!): Skill! @hasRole(role: TEACHER)
+    updateOneSkill(skillID: Int!, name: String): Skill! @hasRole(role: TEACHER)
+    updateOneStudent(ownerUsername: String!, groupIDs: [Int!]): Student! @hasRole(role: TEACHER)
+    createOneContract(end: String!, name: String!, hexColor: String!, start: String!, skillNames: [String!]!): Contract! @hasRole(role: TEACHER)
+    deleteOneContract(id: Int!): Contract! @hasRole(role: TEACHER)
+    deleteOneStudent(ownerUsername: String!): Student! @hasRole(role: TEACHER)
+    upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill! @hasRole(role: TEACHER)
+    createOneStudent(student: StudentInput!, user: UserInput!): Student! @hasRole(role: TEACHER)
 }
 
 input StudentInput {

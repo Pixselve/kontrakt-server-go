@@ -16,7 +16,6 @@ import (
 
 	"github.com/prisma/prisma-client-go/runtime/transaction"
 	"golang.org/x/crypto/bcrypt"
-	_ "strings"
 )
 
 func (r *contractResolver) End(ctx context.Context, obj *db.ContractModel) (string, error) {
@@ -181,7 +180,6 @@ func (r *mutationResolver) DeleteOneStudent(ctx context.Context, ownerUsername s
 		return nil, err
 	}
 	return student, nil
-
 }
 
 func (r *mutationResolver) UpsertOneSkillToStudent(ctx context.Context, studentOwnerUsername string, skillID int, mark model.Mark) (*db.StudentSkillModel, error) {
