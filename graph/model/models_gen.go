@@ -33,20 +33,28 @@ type UserInput struct {
 type Mark string
 
 const (
-	MarkTodo Mark = "TODO"
-	MarkGood Mark = "GOOD"
-	MarkBad  Mark = "BAD"
+	MarkTodo      Mark = "TODO"
+	MarkToFinish  Mark = "TO_FINISH"
+	MarkToCorrect Mark = "TO_CORRECT"
+	MarkGood      Mark = "GOOD"
+	MarkVeryGood  Mark = "VERY_GOOD"
+	MarkBad       Mark = "BAD"
+	MarkVeryBad   Mark = "VERY_BAD"
 )
 
 var AllMark = []Mark{
 	MarkTodo,
+	MarkToFinish,
+	MarkToCorrect,
 	MarkGood,
+	MarkVeryGood,
 	MarkBad,
+	MarkVeryBad,
 }
 
 func (e Mark) IsValid() bool {
 	switch e {
-	case MarkTodo, MarkGood, MarkBad:
+	case MarkTodo, MarkToFinish, MarkToCorrect, MarkGood, MarkVeryGood, MarkBad, MarkVeryBad:
 		return true
 	}
 	return false

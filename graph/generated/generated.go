@@ -848,13 +848,17 @@ enum Role {
 
 enum Mark {
     TODO
+    TO_FINISH
+    TO_CORRECT
     GOOD
+    VERY_GOOD
     BAD
+    VERY_BAD
 }
 
 type Query {
     contracts(groupIds: [Int!]): [Contract!]!
-    groups: [Group!]! 
+    groups: [Group!]!
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
     students(contractID: Int): [Student!]! @hasRole(role: TEACHER)

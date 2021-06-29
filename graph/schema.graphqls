@@ -74,8 +74,12 @@ enum Role {
 
 enum Mark {
     TODO
+    TO_FINISH
+    TO_CORRECT
     GOOD
+    VERY_GOOD
     BAD
+    VERY_BAD
 }
 
 type Query {
