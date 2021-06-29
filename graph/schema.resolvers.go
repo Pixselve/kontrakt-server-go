@@ -11,17 +11,19 @@ import (
 	"kontrakt-server/graph/model"
 	"kontrakt-server/prisma/db"
 	"kontrakt-server/utils"
+	"strings"
 	"time"
 
 	"github.com/prisma/prisma-client-go/runtime/transaction"
 	"golang.org/x/crypto/bcrypt"
+	_ "strings"
 )
 
-func (r *contractResolver) End(_ context.Context, obj *db.ContractModel) (string, error) {
+func (r *contractResolver) End(ctx context.Context, obj *db.ContractModel) (string, error) {
 	return obj.End.String(), nil
 }
 
-func (r *contractResolver) Start(_ context.Context, obj *db.ContractModel) (string, error) {
+func (r *contractResolver) Start(ctx context.Context, obj *db.ContractModel) (string, error) {
 	return obj.Start.String(), nil
 }
 
@@ -179,6 +181,22 @@ func (r *mutationResolver) UpsertOneSkillToStudent(ctx context.Context, studentO
 	).Exec(ctx)
 }
 
+func (r *mutationResolver) CreateOneStudent(ctx context.Context, student model.StudentInput, user model.UserInput) (*db.StudentModel, error) {
+	// Create the user
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	username := strings.ToLower(string(student.FirstName[0]) + student.LastName)
+
+	createdUser, err := r.Prisma.User.CreateOne(db.User.Username.Set(username), db.User.Password.Set(string(hashedPassword)), db.User.Role.Set(db.RoleSTUDENT)).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Create the associated student
+	return r.Prisma.Student.CreateOne(db.Student.Owner.Link(db.User.Username.Equals(createdUser.Username)), db.Student.FirstName.Set(strings.Title(student.FirstName)), db.Student.LastName.Set(strings.Title(student.LastName))).Exec(ctx)
+}
+
 func (r *queryResolver) Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error) {
 	var params []db.ContractWhereParam
 	if len(groupIds) > 0 {
@@ -276,7 +294,7 @@ func (r *studentResolver) Owner(ctx context.Context, obj *db.StudentModel) (*mod
 	}, nil
 }
 
-func (r *studentResolver) OwnerUsername(_ context.Context, obj *db.StudentModel) (string, error) {
+func (r *studentResolver) OwnerUsername(ctx context.Context, obj *db.StudentModel) (string, error) {
 	return obj.OwnerID, nil
 }
 
@@ -307,7 +325,7 @@ func (r *studentResolver) Groups(ctx context.Context, obj *db.StudentModel) ([]d
 	return r.Prisma.Group.FindMany(db.Group.Students.Some(db.Student.OwnerID.Equals(obj.OwnerID))).Exec(ctx)
 }
 
-func (r *studentSkillResolver) Mark(_ context.Context, obj *db.StudentSkillModel) (model.Mark, error) {
+func (r *studentSkillResolver) Mark(ctx context.Context, obj *db.StudentSkillModel) (model.Mark, error) {
 	return model.Mark(obj.Mark), nil
 }
 
@@ -330,7 +348,7 @@ func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*mod
 	}, nil
 }
 
-func (r *teacherResolver) OwnerUsername(_ context.Context, obj *db.TeacherModel) (string, error) {
+func (r *teacherResolver) OwnerUsername(ctx context.Context, obj *db.TeacherModel) (string, error) {
 	return obj.OwnerID, nil
 }
 

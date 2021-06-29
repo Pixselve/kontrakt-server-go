@@ -81,6 +81,7 @@ type ComplexityRoot struct {
 		CreateOneContract       func(childComplexity int, end string, name string, hexColor string, start string, skillNames []string) int
 		CreateOneGroup          func(childComplexity int, name string, contractID *int) int
 		CreateOneSkill          func(childComplexity int, name string, contractID int) int
+		CreateOneStudent        func(childComplexity int, student model.StudentInput, user model.UserInput) int
 		DeleteOneContract       func(childComplexity int, id int) int
 		DeleteOneSkill          func(childComplexity int, id int) int
 		DeleteOneStudent        func(childComplexity int, ownerUsername string) int
@@ -165,6 +166,7 @@ type MutationResolver interface {
 	DeleteOneContract(ctx context.Context, id int) (*db.ContractModel, error)
 	DeleteOneStudent(ctx context.Context, ownerUsername string) (*db.StudentModel, error)
 	UpsertOneSkillToStudent(ctx context.Context, studentOwnerUsername string, skillID int, mark model.Mark) (*db.StudentSkillModel, error)
+	CreateOneStudent(ctx context.Context, student model.StudentInput, user model.UserInput) (*db.StudentModel, error)
 }
 type QueryResolver interface {
 	Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error)
@@ -348,6 +350,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateOneSkill(childComplexity, args["name"].(string), args["contractID"].(int)), true
+
+	case "Mutation.createOneStudent":
+		if e.complexity.Mutation.CreateOneStudent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createOneStudent_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateOneStudent(childComplexity, args["student"].(model.StudentInput), args["user"].(model.UserInput)), true
 
 	case "Mutation.deleteOneContract":
 		if e.complexity.Mutation.DeleteOneContract == nil {
@@ -860,6 +874,15 @@ type Mutation {
     deleteOneContract(id: Int!): Contract!
     deleteOneStudent(ownerUsername: String!): Student!
     upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill!
+    createOneStudent(student: StudentInput!, user: UserInput!): Student!
+}
+
+input StudentInput {
+    firstName: String!
+    lastName: String!
+}
+input UserInput {
+    password: String!
 }
 
 type AuthPayload {
@@ -984,6 +1007,30 @@ func (ec *executionContext) field_Mutation_createOneSkill_args(ctx context.Conte
 		}
 	}
 	args["contractID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createOneStudent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.StudentInput
+	if tmp, ok := rawArgs["student"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("student"))
+		arg0, err = ec.unmarshalNStudentInput2kontraktᚑserverᚋgraphᚋmodelᚐStudentInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["student"] = arg0
+	var arg1 model.UserInput
+	if tmp, ok := rawArgs["user"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+		arg1, err = ec.unmarshalNUserInput2kontraktᚑserverᚋgraphᚋmodelᚐUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["user"] = arg1
 	return args, nil
 }
 
@@ -2272,6 +2319,48 @@ func (ec *executionContext) _Mutation_upsertOneSkillToStudent(ctx context.Contex
 	res := resTmp.(*db.StudentSkillModel)
 	fc.Result = res
 	return ec.marshalNStudentSkill2ᚖkontraktᚑserverᚋprismaᚋdbᚐStudentSkillModel(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createOneStudent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createOneStudent_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateOneStudent(rctx, args["student"].(model.StudentInput), args["user"].(model.UserInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*db.StudentModel)
+	fc.Result = res
+	return ec.marshalNStudent2ᚖkontraktᚑserverᚋprismaᚋdbᚐStudentModel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_contracts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4607,6 +4696,54 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputStudentInput(ctx context.Context, obj interface{}) (model.StudentInput, error) {
+	var it model.StudentInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "firstName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+			it.FirstName, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "lastName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			it.LastName, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUserInput(ctx context.Context, obj interface{}) (model.UserInput, error) {
+	var it model.UserInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -4872,6 +5009,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "upsertOneSkillToStudent":
 			out.Values[i] = ec._Mutation_upsertOneSkillToStudent(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createOneStudent":
+			out.Values[i] = ec._Mutation_createOneStudent(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5924,6 +6066,11 @@ func (ec *executionContext) marshalNStudent2ᚖkontraktᚑserverᚋprismaᚋdb�
 	return ec._Student(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNStudentInput2kontraktᚑserverᚋgraphᚋmodelᚐStudentInput(ctx context.Context, v interface{}) (model.StudentInput, error) {
+	res, err := ec.unmarshalInputStudentInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNStudentSkill2kontraktᚑserverᚋprismaᚋdbᚐStudentSkillModel(ctx context.Context, sel ast.SelectionSet, v db.StudentSkillModel) graphql.Marshaler {
 	return ec._StudentSkill(ctx, sel, &v)
 }
@@ -6028,6 +6175,11 @@ func (ec *executionContext) marshalNUser2ᚖkontraktᚑserverᚋgraphᚋmodelᚐ
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUserInput2kontraktᚑserverᚋgraphᚋmodelᚐUserInput(ctx context.Context, v interface{}) (model.UserInput, error) {
+	res, err := ec.unmarshalInputUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

@@ -14,11 +14,20 @@ type AuthPayload struct {
 	User  *User  `json:"user"`
 }
 
+type StudentInput struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+}
+
 type User struct {
 	Username string            `json:"username"`
 	Role     Role              `json:"role"`
 	Student  []db.StudentModel `json:"student"`
 	Teacher  []db.TeacherModel `json:"teacher"`
+}
+
+type UserInput struct {
+	Password string `json:"password"`
 }
 
 type Mark string

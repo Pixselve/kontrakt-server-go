@@ -100,6 +100,15 @@ type Mutation {
     deleteOneContract(id: Int!): Contract!
     deleteOneStudent(ownerUsername: String!): Student!
     upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill!
+    createOneStudent(student: StudentInput!, user: UserInput!): Student!
+}
+
+input StudentInput {
+    firstName: String!
+    lastName: String!
+}
+input UserInput {
+    password: String!
 }
 
 type AuthPayload {
