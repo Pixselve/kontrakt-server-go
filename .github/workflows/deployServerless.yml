@@ -18,6 +18,8 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: '1.16.5'
+      - name: Generate Prisma Client
+        run: go run github.com/prisma/prisma-client-go generate
       - name: Run build
         run: env GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/server
       - name: Install Serverless Framework
