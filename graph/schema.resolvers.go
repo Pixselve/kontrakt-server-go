@@ -170,7 +170,18 @@ func (r *mutationResolver) DeleteOneContract(ctx context.Context, id int) (*db.C
 }
 
 func (r *mutationResolver) DeleteOneStudent(ctx context.Context, ownerUsername string) (*db.StudentModel, error) {
-	return r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(ownerUsername)).Delete().Exec(ctx)
+	//Delete the student
+	student, err := r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(ownerUsername)).Delete().Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	//Delete the user
+	_, err = r.Prisma.User.FindUnique(db.User.Username.Equals(ownerUsername)).Delete().Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return student, nil
+
 }
 
 func (r *mutationResolver) UpsertOneSkillToStudent(ctx context.Context, studentOwnerUsername string, skillID int, mark model.Mark) (*db.StudentSkillModel, error) {
