@@ -8,6 +8,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/gorilla/handlers"
+	"kontrakt-server/dataloader"
 	"kontrakt-server/graph"
 	"kontrakt-server/graph/auth"
 	"kontrakt-server/graph/generated"
@@ -65,7 +66,7 @@ func init() {
 
 	schema := generated.NewExecutableSchema(config)
 	server := handler.NewDefaultServer(schema)
-	muxRouter.Handle("/query", server)
+	muxRouter.Handle("/query", dataloader.Middleware(prismaClient, server))
 	muxRouter.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	muxRouter.Use(auth.Middleware(prismaClient))
 	cors := handlers.CORS(
