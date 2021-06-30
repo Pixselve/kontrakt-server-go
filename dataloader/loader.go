@@ -12,6 +12,8 @@ const loadersKey = "dataloaders"
 type Loaders struct {
 	GroupsByContractID GroupsLoader
 	SkillsByContractID SkillsLoader
+	ContractsByGroupID ContractsLoader
+	StudentsByGroupID  StudentsLoader
 }
 
 func Middleware(prismaClient *db.PrismaClient, next http.Handler) http.Handler {
@@ -45,6 +47,38 @@ func Middleware(prismaClient *db.PrismaClient, next http.Handler) http.Handler {
 						skills[i] = skillsByContractID[contractID]
 					}
 					return skills, []error{err}
+				},
+				wait:     1 * time.Millisecond,
+				maxBatch: 100,
+			},
+			ContractsLoader{
+				fetch: func(groupIDs []int) ([][]db.ContractModel, []error) {
+					groups, err := prismaClient.Group.FindMany(db.Group.ID.In(groupIDs)).With(db.Group.Contracts.Fetch()).Exec(r.Context())
+					contractsByGroupID := map[int][]db.ContractModel{}
+					for _, group := range groups {
+						contractsByGroupID[group.ID] = group.Contracts()
+					}
+					contracts := make([][]db.ContractModel, len(groupIDs))
+					for i, contractID := range groupIDs {
+						contracts[i] = contractsByGroupID[contractID]
+					}
+					return contracts, []error{err}
+				},
+				wait:     1 * time.Millisecond,
+				maxBatch: 100,
+			},
+			StudentsLoader{
+				fetch: func(groupIDs []int) ([][]db.StudentModel, []error) {
+					groups, err := prismaClient.Group.FindMany(db.Group.ID.In(groupIDs)).With(db.Group.Students.Fetch()).Exec(r.Context())
+					studentsByGroupID := map[int][]db.StudentModel{}
+					for _, group := range groups {
+						studentsByGroupID[group.ID] = group.Students()
+					}
+					students := make([][]db.StudentModel, len(groupIDs))
+					for i, contractID := range groupIDs {
+						students[i] = studentsByGroupID[contractID]
+					}
+					return students, []error{err}
 				},
 				wait:     1 * time.Millisecond,
 				maxBatch: 100,
