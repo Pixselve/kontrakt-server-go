@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"kontrakt-server/dataloader"
 	"kontrakt-server/graph/auth"
 	"kontrakt-server/graph/generated"
 	"kontrakt-server/graph/model"
@@ -27,11 +28,11 @@ func (r *contractResolver) Start(ctx context.Context, obj *db.ContractModel) (st
 }
 
 func (r *contractResolver) Skills(ctx context.Context, obj *db.ContractModel) ([]db.SkillModel, error) {
-	return r.Prisma.Skill.FindMany(db.Skill.ContractID.Equals(obj.ID)).Exec(ctx)
+	return dataloader.For(ctx).SkillsByContractID.Load(obj.ID)
 }
 
 func (r *contractResolver) Groups(ctx context.Context, obj *db.ContractModel) ([]db.GroupModel, error) {
-	return r.Prisma.Group.FindMany(db.Group.Contracts.Some(db.Contract.ID.Equals(obj.ID))).Exec(ctx)
+	return dataloader.For(ctx).GroupsByContractID.Load(obj.ID)
 }
 
 func (r *groupResolver) Contracts(ctx context.Context, obj *db.GroupModel) ([]db.ContractModel, error) {
