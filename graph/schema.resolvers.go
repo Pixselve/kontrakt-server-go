@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"kontrakt-server/dataloader"
 	"kontrakt-server/graph/auth"
 	"kontrakt-server/graph/generated"
 	"kontrakt-server/graph/model"
@@ -27,19 +28,19 @@ func (r *contractResolver) Start(ctx context.Context, obj *db.ContractModel) (st
 }
 
 func (r *contractResolver) Skills(ctx context.Context, obj *db.ContractModel) ([]db.SkillModel, error) {
-	return r.Prisma.Skill.FindMany(db.Skill.ContractID.Equals(obj.ID)).Exec(ctx)
+	return dataloader.For(ctx).SkillsByContractID.Load(obj.ID)
 }
 
 func (r *contractResolver) Groups(ctx context.Context, obj *db.ContractModel) ([]db.GroupModel, error) {
-	return r.Prisma.Group.FindMany(db.Group.Contracts.Some(db.Contract.ID.Equals(obj.ID))).Exec(ctx)
+	return dataloader.For(ctx).GroupsByContractID.Load(obj.ID)
 }
 
 func (r *groupResolver) Contracts(ctx context.Context, obj *db.GroupModel) ([]db.ContractModel, error) {
-	return r.Prisma.Contract.FindMany(db.Contract.Groups.Some(db.Group.ID.Equals(obj.ID))).Exec(ctx)
+	return dataloader.For(ctx).ContractsByGroupID.Load(obj.ID)
 }
 
 func (r *groupResolver) Students(ctx context.Context, obj *db.GroupModel) ([]db.StudentModel, error) {
-	return r.Prisma.Student.FindMany(db.Student.Groups.Some(db.Group.ID.Equals(obj.ID))).Exec(ctx)
+	return dataloader.For(ctx).StudentsByGroupID.Load(obj.ID)
 }
 
 func (r *mutationResolver) Login(ctx context.Context, username string, password string) (*model.AuthPayload, error) {
@@ -339,11 +340,11 @@ func (r *studentSkillResolver) Mark(ctx context.Context, obj *db.StudentSkillMod
 }
 
 func (r *studentSkillResolver) Skill(ctx context.Context, obj *db.StudentSkillModel) (*db.SkillModel, error) {
-	return r.Prisma.Skill.FindUnique(db.Skill.ID.Equals(obj.SkillID)).Exec(ctx)
+	return dataloader.For(ctx).SkillBySkillID.Load(obj.SkillID)
 }
 
 func (r *studentSkillResolver) Student(ctx context.Context, obj *db.StudentSkillModel) (*db.StudentModel, error) {
-	return r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(obj.StudentID)).Exec(ctx)
+	return dataloader.For(ctx).StudentByUsername.Load(obj.StudentID)
 }
 
 func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error) {
