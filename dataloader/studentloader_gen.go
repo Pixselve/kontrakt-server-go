@@ -12,7 +12,7 @@ import (
 // StudentLoaderConfig captures the config to create a new StudentLoader
 type StudentLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []int) ([]db.StudentModel, []error)
+	Fetch func(keys []string) ([]*db.StudentModel, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -33,7 +33,7 @@ func NewStudentLoader(config StudentLoaderConfig) *StudentLoader {
 // StudentLoader batches and caches requests
 type StudentLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []int) ([]db.StudentModel, []error)
+	fetch func(keys []string) ([]*db.StudentModel, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -44,7 +44,7 @@ type StudentLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[int]db.StudentModel
+	cache map[string]*db.StudentModel
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -55,26 +55,26 @@ type StudentLoader struct {
 }
 
 type studentLoaderBatch struct {
-	keys    []int
-	data    []db.StudentModel
+	keys    []string
+	data    []*db.StudentModel
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
 // Load a StudentModel by key, batching and caching will be applied automatically
-func (l *StudentLoader) Load(key int) (db.StudentModel, error) {
+func (l *StudentLoader) Load(key string) (*db.StudentModel, error) {
 	return l.LoadThunk(key)()
 }
 
 // LoadThunk returns a function that when called will block waiting for a StudentModel.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *StudentLoader) LoadThunk(key int) func() (db.StudentModel, error) {
+func (l *StudentLoader) LoadThunk(key string) func() (*db.StudentModel, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (db.StudentModel, error) {
+		return func() (*db.StudentModel, error) {
 			return it, nil
 		}
 	}
@@ -85,10 +85,10 @@ func (l *StudentLoader) LoadThunk(key int) func() (db.StudentModel, error) {
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (db.StudentModel, error) {
+	return func() (*db.StudentModel, error) {
 		<-batch.done
 
-		var data db.StudentModel
+		var data *db.StudentModel
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -113,14 +113,14 @@ func (l *StudentLoader) LoadThunk(key int) func() (db.StudentModel, error) {
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *StudentLoader) LoadAll(keys []int) ([]db.StudentModel, []error) {
-	results := make([]func() (db.StudentModel, error), len(keys))
+func (l *StudentLoader) LoadAll(keys []string) ([]*db.StudentModel, []error) {
+	results := make([]func() (*db.StudentModel, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	studentModels := make([]db.StudentModel, len(keys))
+	studentModels := make([]*db.StudentModel, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
 		studentModels[i], errors[i] = thunk()
@@ -131,13 +131,13 @@ func (l *StudentLoader) LoadAll(keys []int) ([]db.StudentModel, []error) {
 // LoadAllThunk returns a function that when called will block waiting for a StudentModels.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *StudentLoader) LoadAllThunk(keys []int) func() ([]db.StudentModel, []error) {
-	results := make([]func() (db.StudentModel, error), len(keys))
+func (l *StudentLoader) LoadAllThunk(keys []string) func() ([]*db.StudentModel, []error) {
+	results := make([]func() (*db.StudentModel, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]db.StudentModel, []error) {
-		studentModels := make([]db.StudentModel, len(keys))
+	return func() ([]*db.StudentModel, []error) {
+		studentModels := make([]*db.StudentModel, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
 			studentModels[i], errors[i] = thunk()
@@ -149,33 +149,36 @@ func (l *StudentLoader) LoadAllThunk(keys []int) func() ([]db.StudentModel, []er
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *StudentLoader) Prime(key int, value db.StudentModel) bool {
+func (l *StudentLoader) Prime(key string, value *db.StudentModel) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
-		l.unsafeSet(key, value)
+		// make a copy when writing to the cache, its easy to pass a pointer in from a loop var
+		// and end up with the whole cache pointing to the same value.
+		cpy := *value
+		l.unsafeSet(key, &cpy)
 	}
 	l.mu.Unlock()
 	return !found
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *StudentLoader) Clear(key int) {
+func (l *StudentLoader) Clear(key string) {
 	l.mu.Lock()
 	delete(l.cache, key)
 	l.mu.Unlock()
 }
 
-func (l *StudentLoader) unsafeSet(key int, value db.StudentModel) {
+func (l *StudentLoader) unsafeSet(key string, value *db.StudentModel) {
 	if l.cache == nil {
-		l.cache = map[int]db.StudentModel{}
+		l.cache = map[string]*db.StudentModel{}
 	}
 	l.cache[key] = value
 }
 
 // keyIndex will return the location of the key in the batch, if its not found
 // it will add the key to the batch
-func (b *studentLoaderBatch) keyIndex(l *StudentLoader, key int) int {
+func (b *studentLoaderBatch) keyIndex(l *StudentLoader, key string) int {
 	for i, existingKey := range b.keys {
 		if key == existingKey {
 			return i

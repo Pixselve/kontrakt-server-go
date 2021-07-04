@@ -340,11 +340,11 @@ func (r *studentSkillResolver) Mark(ctx context.Context, obj *db.StudentSkillMod
 }
 
 func (r *studentSkillResolver) Skill(ctx context.Context, obj *db.StudentSkillModel) (*db.SkillModel, error) {
-	return r.Prisma.Skill.FindUnique(db.Skill.ID.Equals(obj.SkillID)).Exec(ctx)
+	return dataloader.For(ctx).SkillBySkillID.Load(obj.SkillID)
 }
 
 func (r *studentSkillResolver) Student(ctx context.Context, obj *db.StudentSkillModel) (*db.StudentModel, error) {
-	return r.Prisma.Student.FindUnique(db.Student.OwnerID.Equals(obj.StudentID)).Exec(ctx)
+	return dataloader.For(ctx).StudentByUsername.Load(obj.StudentID)
 }
 
 func (r *teacherResolver) Owner(ctx context.Context, obj *db.TeacherModel) (*model.User, error) {

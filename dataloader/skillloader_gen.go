@@ -12,7 +12,7 @@ import (
 // SkillLoaderConfig captures the config to create a new SkillLoader
 type SkillLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []int) ([]db.SkillModel, []error)
+	Fetch func(keys []int) ([]*db.SkillModel, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -33,7 +33,7 @@ func NewSkillLoader(config SkillLoaderConfig) *SkillLoader {
 // SkillLoader batches and caches requests
 type SkillLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []int) ([]db.SkillModel, []error)
+	fetch func(keys []int) ([]*db.SkillModel, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -44,7 +44,7 @@ type SkillLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[int]db.SkillModel
+	cache map[int]*db.SkillModel
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -56,25 +56,25 @@ type SkillLoader struct {
 
 type skillLoaderBatch struct {
 	keys    []int
-	data    []db.SkillModel
+	data    []*db.SkillModel
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
 // Load a SkillModel by key, batching and caching will be applied automatically
-func (l *SkillLoader) Load(key int) (db.SkillModel, error) {
+func (l *SkillLoader) Load(key int) (*db.SkillModel, error) {
 	return l.LoadThunk(key)()
 }
 
 // LoadThunk returns a function that when called will block waiting for a SkillModel.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *SkillLoader) LoadThunk(key int) func() (db.SkillModel, error) {
+func (l *SkillLoader) LoadThunk(key int) func() (*db.SkillModel, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (db.SkillModel, error) {
+		return func() (*db.SkillModel, error) {
 			return it, nil
 		}
 	}
@@ -85,10 +85,10 @@ func (l *SkillLoader) LoadThunk(key int) func() (db.SkillModel, error) {
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (db.SkillModel, error) {
+	return func() (*db.SkillModel, error) {
 		<-batch.done
 
-		var data db.SkillModel
+		var data *db.SkillModel
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -113,14 +113,14 @@ func (l *SkillLoader) LoadThunk(key int) func() (db.SkillModel, error) {
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *SkillLoader) LoadAll(keys []int) ([]db.SkillModel, []error) {
-	results := make([]func() (db.SkillModel, error), len(keys))
+func (l *SkillLoader) LoadAll(keys []int) ([]*db.SkillModel, []error) {
+	results := make([]func() (*db.SkillModel, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	skillModels := make([]db.SkillModel, len(keys))
+	skillModels := make([]*db.SkillModel, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
 		skillModels[i], errors[i] = thunk()
@@ -131,13 +131,13 @@ func (l *SkillLoader) LoadAll(keys []int) ([]db.SkillModel, []error) {
 // LoadAllThunk returns a function that when called will block waiting for a SkillModels.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *SkillLoader) LoadAllThunk(keys []int) func() ([]db.SkillModel, []error) {
-	results := make([]func() (db.SkillModel, error), len(keys))
+func (l *SkillLoader) LoadAllThunk(keys []int) func() ([]*db.SkillModel, []error) {
+	results := make([]func() (*db.SkillModel, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]db.SkillModel, []error) {
-		skillModels := make([]db.SkillModel, len(keys))
+	return func() ([]*db.SkillModel, []error) {
+		skillModels := make([]*db.SkillModel, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
 			skillModels[i], errors[i] = thunk()
@@ -149,11 +149,14 @@ func (l *SkillLoader) LoadAllThunk(keys []int) func() ([]db.SkillModel, []error)
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *SkillLoader) Prime(key int, value db.SkillModel) bool {
+func (l *SkillLoader) Prime(key int, value *db.SkillModel) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
-		l.unsafeSet(key, value)
+		// make a copy when writing to the cache, its easy to pass a pointer in from a loop var
+		// and end up with the whole cache pointing to the same value.
+		cpy := *value
+		l.unsafeSet(key, &cpy)
 	}
 	l.mu.Unlock()
 	return !found
@@ -166,9 +169,9 @@ func (l *SkillLoader) Clear(key int) {
 	l.mu.Unlock()
 }
 
-func (l *SkillLoader) unsafeSet(key int, value db.SkillModel) {
+func (l *SkillLoader) unsafeSet(key int, value *db.SkillModel) {
 	if l.cache == nil {
-		l.cache = map[int]db.SkillModel{}
+		l.cache = map[int]*db.SkillModel{}
 	}
 	l.cache[key] = value
 }
