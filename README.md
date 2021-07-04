@@ -1,1 +1,2 @@
 # Kontrakt server
+[![Deploy master branch](https://github.com/Pixselve/kontrakt-server-go/actions/workflows/deployServerless.yml/badge.svg)](https://github.com/Pixselve/kontrakt-server-go/actions/workflows/deployServerless.yml)
