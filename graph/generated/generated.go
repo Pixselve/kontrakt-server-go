@@ -94,7 +94,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Contract      func(childComplexity int, id int) int
-		Contracts     func(childComplexity int, groupIds []int) int
+		Contracts     func(childComplexity int, groups *model.FilterGroup) int
 		Groups        func(childComplexity int) int
 		Me            func(childComplexity int) int
 		Student       func(childComplexity int, ownerUsername string) int
@@ -169,7 +169,7 @@ type MutationResolver interface {
 	CreateOneStudent(ctx context.Context, student model.StudentInput, user model.UserInput) (*db.StudentModel, error)
 }
 type QueryResolver interface {
-	Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error)
+	Contracts(ctx context.Context, groups *model.FilterGroup) ([]db.ContractModel, error)
 	Groups(ctx context.Context) ([]db.GroupModel, error)
 	Student(ctx context.Context, ownerUsername string) (*db.StudentModel, error)
 	Contract(ctx context.Context, id int) (*db.ContractModel, error)
@@ -481,7 +481,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Contracts(childComplexity, args["groupIds"].([]int)), true
+		return e.complexity.Query.Contracts(childComplexity, args["groups"].(*model.FilterGroup)), true
 
 	case "Query.groups":
 		if e.complexity.Query.Groups == nil {
@@ -857,7 +857,7 @@ enum Mark {
 }
 
 type Query {
-    contracts(groupIds: [Int!]): [Contract!]!
+    contracts(groups: FilterGroup): [Contract!]!
     groups: [Group!]!
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
@@ -865,6 +865,9 @@ type Query {
     teachers: [Teacher!]! @hasRole(role: TEACHER)
     me: User! @isLoggedIn
     studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]! @hasRole(role: TEACHER)
+}
+input FilterGroup {
+    idsIn: [Int!]
 }
 type Mutation {
     login(username: String!, password: String!): AuthPayload!
@@ -1245,15 +1248,15 @@ func (ec *executionContext) field_Query_contract_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_contracts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []int
-	if tmp, ok := rawArgs["groupIds"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("groupIds"))
-		arg0, err = ec.unmarshalOInt2ᚕintᚄ(ctx, tmp)
+	var arg0 *model.FilterGroup
+	if tmp, ok := rawArgs["groups"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("groups"))
+		arg0, err = ec.unmarshalOFilterGroup2ᚖkontraktᚑserverᚋgraphᚋmodelᚐFilterGroup(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["groupIds"] = arg0
+	args["groups"] = arg0
 	return args, nil
 }
 
@@ -2656,7 +2659,7 @@ func (ec *executionContext) _Query_contracts(ctx context.Context, field graphql.
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Contracts(rctx, args["groupIds"].([]int))
+		return ec.resolvers.Query().Contracts(rctx, args["groups"].(*model.FilterGroup))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5036,6 +5039,26 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputFilterGroup(ctx context.Context, obj interface{}) (model.FilterGroup, error) {
+	var it model.FilterGroup
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "idsIn":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idsIn"))
+			it.IdsIn, err = ec.unmarshalOInt2ᚕintᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputStudentInput(ctx context.Context, obj interface{}) (model.StudentInput, error) {
 	var it model.StudentInput
 	var asMap = obj.(map[string]interface{})
@@ -6773,6 +6796,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) unmarshalOFilterGroup2ᚖkontraktᚑserverᚋgraphᚋmodelᚐFilterGroup(ctx context.Context, v interface{}) (*model.FilterGroup, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFilterGroup(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚕintᚄ(ctx context.Context, v interface{}) ([]int, error) {

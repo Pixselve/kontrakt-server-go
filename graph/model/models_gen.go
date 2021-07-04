@@ -14,6 +14,10 @@ type AuthPayload struct {
 	User  *User  `json:"user"`
 }
 
+type FilterGroup struct {
+	IdsIn []int `json:"idsIn"`
+}
+
 type StudentInput struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`

@@ -207,10 +207,10 @@ func (r *mutationResolver) CreateOneStudent(ctx context.Context, student model.S
 	return r.Prisma.Student.CreateOne(db.Student.Owner.Link(db.User.Username.Equals(createdUser.Username)), db.Student.FirstName.Set(strings.Title(student.FirstName)), db.Student.LastName.Set(strings.Title(student.LastName))).Exec(ctx)
 }
 
-func (r *queryResolver) Contracts(ctx context.Context, groupIds []int) ([]db.ContractModel, error) {
+func (r *queryResolver) Contracts(ctx context.Context, groups *model.FilterGroup) ([]db.ContractModel, error) {
 	var params []db.ContractWhereParam
-	if len(groupIds) > 0 {
-		params = append(params, db.Contract.Groups.Some(db.Group.ID.In(groupIds)))
+	if groups != nil {
+		params = append(params, db.Contract.Groups.Some(db.Group.ID.In(groups.IdsIn)))
 	}
 	return r.Prisma.Contract.FindMany(params...).Exec(ctx)
 }

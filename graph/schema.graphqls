@@ -83,7 +83,7 @@ enum Mark {
 }
 
 type Query {
-    contracts(groupIds: [Int!]): [Contract!]!
+    contracts(groups: FilterGroup): [Contract!]!
     groups: [Group!]!
     student(ownerUsername: String!): Student!
     contract(id: Int!): Contract!
@@ -91,6 +91,9 @@ type Query {
     teachers: [Teacher!]! @hasRole(role: TEACHER)
     me: User! @isLoggedIn
     studentSkills(studentUsername: String!, contractID: Int): [StudentSkill!]! @hasRole(role: TEACHER)
+}
+input FilterGroup {
+    idsIn: [Int!]
 }
 type Mutation {
     login(username: String!, password: String!): AuthPayload!
