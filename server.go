@@ -7,7 +7,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/gorilla/handlers"
+	"github.com/rs/cors"
 	"kontrakt-server/dataloader"
 	"kontrakt-server/graph"
 	"kontrakt-server/graph/auth"
@@ -69,12 +69,12 @@ func init() {
 	muxRouter.Handle("/query", dataloader.Middleware(prismaClient, server))
 	muxRouter.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	muxRouter.Use(auth.Middleware(prismaClient))
-	cors := handlers.CORS(
-		handlers.AllowedHeaders([]string{"Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key", "X-Amz-Security-Token:"}),
-		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowCredentials(),
-	)
-	muxRouter.Use(cors)
+	muxRouter.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "https://kontrakt.maelkerichard.com"},
+		AllowCredentials: true,
+		Debug:            true,
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+	}).Handler)
 
 }
 
