@@ -109,8 +109,8 @@ func Middleware(prismaClient *db.PrismaClient, next http.Handler) http.Handler {
 						return []*db.SkillModel{}, []error{err}
 					}
 					skillByID := map[int]*db.SkillModel{}
-					for _, skill := range skillsToSort {
-						skillByID[skill.ID] = &skill
+					for i, skill := range skillsToSort {
+						skillByID[skill.ID] = &skillsToSort[i]
 					}
 					skills := make([]*db.SkillModel, len(skillIDs))
 					for i, skillID := range skillIDs {
@@ -128,8 +128,8 @@ func Middleware(prismaClient *db.PrismaClient, next http.Handler) http.Handler {
 						return []*db.StudentModel{}, []error{err}
 					}
 					studentByUsername := map[string]*db.StudentModel{}
-					for _, student := range studentsToSort {
-						studentByUsername[student.OwnerID] = &student
+					for i, student := range studentsToSort {
+						studentByUsername[student.OwnerID] = &studentsToSort[i]
 					}
 					students := make([]*db.StudentModel, len(usernames))
 					for i, username := range usernames {
