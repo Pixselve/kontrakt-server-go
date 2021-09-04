@@ -208,7 +208,15 @@ func (r *mutationResolver) CreateOneStudent(ctx context.Context, student model.S
 }
 
 func (r *mutationResolver) CreateOneTeacher(ctx context.Context, username string, password string) (*db.TeacherModel, error) {
-	panic(fmt.Errorf("not implemented"))
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	createdUser, err := r.Prisma.User.CreateOne(db.User.Username.Set(username), db.User.Password.Set(string(hashedPassword)), db.User.Role.Set(db.RoleTEACHER)).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.Prisma.Teacher.CreateOne(db.Teacher.Owner.Link(db.User.Username.Equals(createdUser.Username)), db.Teacher.FirstName.Set(""), db.Teacher.LastName.Set("")).Exec(ctx)
 }
 
 func (r *queryResolver) Contracts(ctx context.Context, groups *model.FilterGroup) ([]db.ContractModel, error) {
