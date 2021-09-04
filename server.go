@@ -70,7 +70,7 @@ func init() {
 	muxRouter.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	muxRouter.Use(auth.Middleware(prismaClient))
 	muxRouter.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "https://kontrakt.maelkerichard.com"},
+		AllowedOrigins:   []string{"http://localhost:3000", "https://kontrakt.maelkerichard.com", "https://kontrakt.ecolepontpean.fr"},
 		AllowCredentials: true,
 		Debug:            true,
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
