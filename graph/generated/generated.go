@@ -82,7 +82,7 @@ type ComplexityRoot struct {
 		CreateOneGroup          func(childComplexity int, name string, contractID *int) int
 		CreateOneSkill          func(childComplexity int, name string, contractID int) int
 		CreateOneStudent        func(childComplexity int, student model.StudentInput, user model.UserInput) int
-		CreateOneTeacher        func(childComplexity int, username string, password string) int
+		CreateOneTeacher        func(childComplexity int, username string, password string, firstName string, lastName string) int
 		DeleteOneContract       func(childComplexity int, id int) int
 		DeleteOneSkill          func(childComplexity int, id int) int
 		DeleteOneStudent        func(childComplexity int, ownerUsername string) int
@@ -168,7 +168,7 @@ type MutationResolver interface {
 	DeleteOneStudent(ctx context.Context, ownerUsername string) (*db.StudentModel, error)
 	UpsertOneSkillToStudent(ctx context.Context, studentOwnerUsername string, skillID int, mark model.Mark) (*db.StudentSkillModel, error)
 	CreateOneStudent(ctx context.Context, student model.StudentInput, user model.UserInput) (*db.StudentModel, error)
-	CreateOneTeacher(ctx context.Context, username string, password string) (*db.TeacherModel, error)
+	CreateOneTeacher(ctx context.Context, username string, password string, firstName string, lastName string) (*db.TeacherModel, error)
 }
 type QueryResolver interface {
 	Contracts(ctx context.Context, groups *model.FilterGroup) ([]db.ContractModel, error)
@@ -375,7 +375,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateOneTeacher(childComplexity, args["username"].(string), args["password"].(string)), true
+		return e.complexity.Mutation.CreateOneTeacher(childComplexity, args["username"].(string), args["password"].(string), args["firstName"].(string), args["lastName"].(string)), true
 
 	case "Mutation.deleteOneContract":
 		if e.complexity.Mutation.DeleteOneContract == nil {
@@ -896,7 +896,7 @@ type Mutation {
     deleteOneStudent(ownerUsername: String!): Student! @hasRole(role: TEACHER)
     upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill! @hasRole(role: TEACHER)
     createOneStudent(student: StudentInput!, user: UserInput!): Student! @hasRole(role: TEACHER)
-    createOneTeacher(username: String!, password: String!): Teacher! @hasRole(role: TEACHER)
+    createOneTeacher(username: String!, password: String!, firstName: String!, lastName: String!): Teacher! @hasRole(role: TEACHER)
 }
 
 input StudentInput {
@@ -1077,6 +1077,24 @@ func (ec *executionContext) field_Mutation_createOneTeacher_args(ctx context.Con
 		}
 	}
 	args["password"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["firstName"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["firstName"] = arg2
+	var arg3 string
+	if tmp, ok := rawArgs["lastName"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+		arg3, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["lastName"] = arg3
 	return args, nil
 }
 
@@ -2699,7 +2717,7 @@ func (ec *executionContext) _Mutation_createOneTeacher(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateOneTeacher(rctx, args["username"].(string), args["password"].(string))
+			return ec.resolvers.Mutation().CreateOneTeacher(rctx, args["username"].(string), args["password"].(string), args["firstName"].(string), args["lastName"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
