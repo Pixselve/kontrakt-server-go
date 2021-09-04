@@ -108,6 +108,7 @@ type Mutation {
     deleteOneStudent(ownerUsername: String!): Student! @hasRole(role: TEACHER)
     upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill! @hasRole(role: TEACHER)
     createOneStudent(student: StudentInput!, user: UserInput!): Student! @hasRole(role: TEACHER)
+    createOneTeacher(username: String!, password: String!): Teacher! @hasRole(role: TEACHER)
 }
 
 input StudentInput {

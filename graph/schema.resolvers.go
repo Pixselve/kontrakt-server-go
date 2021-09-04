@@ -207,6 +207,10 @@ func (r *mutationResolver) CreateOneStudent(ctx context.Context, student model.S
 	return r.Prisma.Student.CreateOne(db.Student.Owner.Link(db.User.Username.Equals(createdUser.Username)), db.Student.FirstName.Set(strings.Title(student.FirstName)), db.Student.LastName.Set(strings.Title(student.LastName))).Exec(ctx)
 }
 
+func (r *mutationResolver) CreateOneTeacher(ctx context.Context, username string, password string) (*db.TeacherModel, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Contracts(ctx context.Context, groups *model.FilterGroup) ([]db.ContractModel, error) {
 	var params []db.ContractWhereParam
 	if groups != nil {

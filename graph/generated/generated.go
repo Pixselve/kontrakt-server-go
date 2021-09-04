@@ -82,6 +82,7 @@ type ComplexityRoot struct {
 		CreateOneGroup          func(childComplexity int, name string, contractID *int) int
 		CreateOneSkill          func(childComplexity int, name string, contractID int) int
 		CreateOneStudent        func(childComplexity int, student model.StudentInput, user model.UserInput) int
+		CreateOneTeacher        func(childComplexity int, username string, password string) int
 		DeleteOneContract       func(childComplexity int, id int) int
 		DeleteOneSkill          func(childComplexity int, id int) int
 		DeleteOneStudent        func(childComplexity int, ownerUsername string) int
@@ -167,6 +168,7 @@ type MutationResolver interface {
 	DeleteOneStudent(ctx context.Context, ownerUsername string) (*db.StudentModel, error)
 	UpsertOneSkillToStudent(ctx context.Context, studentOwnerUsername string, skillID int, mark model.Mark) (*db.StudentSkillModel, error)
 	CreateOneStudent(ctx context.Context, student model.StudentInput, user model.UserInput) (*db.StudentModel, error)
+	CreateOneTeacher(ctx context.Context, username string, password string) (*db.TeacherModel, error)
 }
 type QueryResolver interface {
 	Contracts(ctx context.Context, groups *model.FilterGroup) ([]db.ContractModel, error)
@@ -362,6 +364,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateOneStudent(childComplexity, args["student"].(model.StudentInput), args["user"].(model.UserInput)), true
+
+	case "Mutation.createOneTeacher":
+		if e.complexity.Mutation.CreateOneTeacher == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createOneTeacher_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateOneTeacher(childComplexity, args["username"].(string), args["password"].(string)), true
 
 	case "Mutation.deleteOneContract":
 		if e.complexity.Mutation.DeleteOneContract == nil {
@@ -882,6 +896,7 @@ type Mutation {
     deleteOneStudent(ownerUsername: String!): Student! @hasRole(role: TEACHER)
     upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill! @hasRole(role: TEACHER)
     createOneStudent(student: StudentInput!, user: UserInput!): Student! @hasRole(role: TEACHER)
+    createOneTeacher(username: String!, password: String!): Teacher! @hasRole(role: TEACHER)
 }
 
 input StudentInput {
@@ -1038,6 +1053,30 @@ func (ec *executionContext) field_Mutation_createOneStudent_args(ctx context.Con
 		}
 	}
 	args["user"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createOneTeacher_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["username"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["username"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg1
 	return args, nil
 }
 
@@ -2632,6 +2671,72 @@ func (ec *executionContext) _Mutation_createOneStudent(ctx context.Context, fiel
 	res := resTmp.(*db.StudentModel)
 	fc.Result = res
 	return ec.marshalNStudent2ᚖkontraktᚑserverᚋprismaᚋdbᚐStudentModel(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createOneTeacher(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createOneTeacher_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateOneTeacher(rctx, args["username"].(string), args["password"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*db.TeacherModel); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *kontrakt-server/prisma/db.TeacherModel`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*db.TeacherModel)
+	fc.Result = res
+	return ec.marshalNTeacher2ᚖkontraktᚑserverᚋprismaᚋdbᚐTeacherModel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_contracts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5380,6 +5485,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "createOneTeacher":
+			out.Values[i] = ec._Mutation_createOneTeacher(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6524,6 +6634,16 @@ func (ec *executionContext) marshalNTeacher2ᚕkontraktᚑserverᚋprismaᚋdb�
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) marshalNTeacher2ᚖkontraktᚑserverᚋprismaᚋdbᚐTeacherModel(ctx context.Context, sel ast.SelectionSet, v *db.TeacherModel) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Teacher(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUser2kontraktᚑserverᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
