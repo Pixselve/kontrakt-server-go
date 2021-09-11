@@ -20,5 +20,6 @@ require (
 	github.com/takuoki/gocase v1.0.0 // indirect
 	github.com/vektah/dataloaden v0.3.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.1.0
-	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	github.com/xuri/excelize/v2 v2.4.1 // indirect
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 )

@@ -5,7 +5,9 @@ package graph
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"fmt"
+	"github.com/xuri/excelize/v2"
 	"kontrakt-server/dataloader"
 	"kontrakt-server/graph/auth"
 	"kontrakt-server/graph/generated"
@@ -219,8 +221,87 @@ func (r *mutationResolver) CreateOneTeacher(ctx context.Context, username string
 	return r.Prisma.Teacher.CreateOne(db.Teacher.Owner.Link(db.User.Username.Equals(createdUser.Username)), db.Teacher.FirstName.Set(firstName), db.Teacher.LastName.Set(lastName)).Exec(ctx)
 }
 
+type studentAndSkill struct {
+	studentOwnerUsername string
+	skillID              int
+}
+
 func (r *mutationResolver) GenerateSpreadsheet(ctx context.Context) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	f := excelize.NewFile()
+
+	contracts, err := r.Prisma.Contract.FindMany().With(db.Contract.Skills.Fetch().With(db.Skill.StudentSkills.Fetch().With(db.StudentSkill.Student.Fetch())), db.Contract.Groups.Fetch().With(db.Group.Students.Fetch())).Exec(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	for _, contract := range contracts {
+		f.NewSheet(contract.Name)
+		f.DeleteSheet(f.GetSheetName(0))
+		students := make(map[string]db.StudentModel)
+		for _, groupModel := range contract.Groups() {
+			for _, studentModel := range groupModel.Students() {
+				students[studentModel.OwnerID] = studentModel
+			}
+		}
+		i := 2
+		f.SetCellValue(contract.Name, "A1", "Élèves")
+		for _, studentModel := range students {
+			axis, err := excelize.CoordinatesToCellName(1, i)
+			if err != nil {
+				return "", err
+			}
+			err = f.SetCellValue(contract.Name, axis, studentModel.FirstName+" "+studentModel.LastName)
+			if err != nil {
+				return "", err
+			}
+			i++
+		}
+		i = 2
+		for skillIndex, skillModel := range contract.Skills() {
+			axis, err := excelize.CoordinatesToCellName(skillIndex+2, 1)
+			if err != nil {
+				return "", err
+			}
+			err = f.SetCellValue(contract.Name, axis, skillModel.Name)
+			if err != nil {
+				return "", err
+			}
+			studentToStudentSkill := make(map[string]db.StudentSkillModel)
+
+			for _, studentSkillModel := range skillModel.StudentSkills() {
+				studentToStudentSkill[studentSkillModel.StudentID] = studentSkillModel
+			}
+			for s := range students {
+				studentSkillModel, exists := studentToStudentSkill[s]
+				axis, err := excelize.CoordinatesToCellName(skillIndex+2, i)
+				var markData utils.MarkData
+				if exists {
+					markData = utils.GetMarkData(studentSkillModel.Mark)
+				} else {
+					markData = utils.GetMarkData(db.MarkTODO)
+				}
+				err = f.SetCellValue(contract.Name, axis, markData.Text)
+				if err != nil {
+					return "", err
+				}
+				style, err := f.NewStyle(markData.Style)
+				err = f.SetCellStyle(contract.Name, axis, axis, style)
+				if err != nil {
+					return "", err
+				}
+				i++
+			}
+			i = 2
+
+		}
+
+	}
+	buffer, err := f.WriteToBuffer()
+	if err != nil {
+		return "", err
+	}
+	toString := b64.StdEncoding.EncodeToString(buffer.Bytes())
+	return "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + toString, err
 }
 
 func (r *queryResolver) Contracts(ctx context.Context, groups *model.FilterGroup) ([]db.ContractModel, error) {
