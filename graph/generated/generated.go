@@ -86,6 +86,7 @@ type ComplexityRoot struct {
 		DeleteOneContract       func(childComplexity int, id int) int
 		DeleteOneSkill          func(childComplexity int, id int) int
 		DeleteOneStudent        func(childComplexity int, ownerUsername string) int
+		GenerateSpreadsheet     func(childComplexity int) int
 		Login                   func(childComplexity int, username string, password string) int
 		UpdateOneContract       func(childComplexity int, contractID int, groupIDs []int) int
 		UpdateOneSkill          func(childComplexity int, skillID int, name *string) int
@@ -169,6 +170,7 @@ type MutationResolver interface {
 	UpsertOneSkillToStudent(ctx context.Context, studentOwnerUsername string, skillID int, mark model.Mark) (*db.StudentSkillModel, error)
 	CreateOneStudent(ctx context.Context, student model.StudentInput, user model.UserInput) (*db.StudentModel, error)
 	CreateOneTeacher(ctx context.Context, username string, password string, firstName string, lastName string) (*db.TeacherModel, error)
+	GenerateSpreadsheet(ctx context.Context) (string, error)
 }
 type QueryResolver interface {
 	Contracts(ctx context.Context, groups *model.FilterGroup) ([]db.ContractModel, error)
@@ -412,6 +414,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteOneStudent(childComplexity, args["ownerUsername"].(string)), true
+
+	case "Mutation.generateSpreadsheet":
+		if e.complexity.Mutation.GenerateSpreadsheet == nil {
+			break
+		}
+
+		return e.complexity.Mutation.GenerateSpreadsheet(childComplexity), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
@@ -897,6 +906,7 @@ type Mutation {
     upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill! @hasRole(role: TEACHER)
     createOneStudent(student: StudentInput!, user: UserInput!): Student! @hasRole(role: TEACHER)
     createOneTeacher(username: String!, password: String!, firstName: String!, lastName: String!): Teacher! @hasRole(role: TEACHER)
+    generateSpreadsheet: String! @hasRole(role: TEACHER)
 }
 
 input StudentInput {
@@ -2755,6 +2765,65 @@ func (ec *executionContext) _Mutation_createOneTeacher(ctx context.Context, fiel
 	res := resTmp.(*db.TeacherModel)
 	fc.Result = res
 	return ec.marshalNTeacher2ᚖkontraktᚑserverᚋprismaᚋdbᚐTeacherModel(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_generateSpreadsheet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().GenerateSpreadsheet(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2kontraktᚑserverᚋgraphᚋmodelᚐRole(ctx, "TEACHER")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_contracts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5505,6 +5574,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "createOneTeacher":
 			out.Values[i] = ec._Mutation_createOneTeacher(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "generateSpreadsheet":
+			out.Values[i] = ec._Mutation_generateSpreadsheet(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

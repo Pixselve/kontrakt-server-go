@@ -109,6 +109,7 @@ type Mutation {
     upsertOneSkillToStudent(studentOwnerUsername: String!, skillID: Int!, mark: Mark!): StudentSkill! @hasRole(role: TEACHER)
     createOneStudent(student: StudentInput!, user: UserInput!): Student! @hasRole(role: TEACHER)
     createOneTeacher(username: String!, password: String!, firstName: String!, lastName: String!): Teacher! @hasRole(role: TEACHER)
+    generateSpreadsheet: String! @hasRole(role: TEACHER)
 }
 
 input StudentInput {
