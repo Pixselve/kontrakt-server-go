@@ -8,18 +8,16 @@ require (
 	github.com/aws/aws-lambda-go v1.24.0
 	github.com/awslabs/aws-lambda-go-api-proxy v0.10.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/felixge/httpsnoop v1.0.2 // indirect
-	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365 // indirect
+	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
+	github.com/joho/godotenv v1.4.0
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
-	github.com/prisma/prisma-client-go v0.9.0
-	github.com/rs/cors v1.8.0 // indirect
-	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/takuoki/gocase v1.0.0 // indirect
-	github.com/vektah/dataloaden v0.3.0 // indirect
+	github.com/prisma/prisma-client-go v0.16.2
+	github.com/rs/cors v1.8.0
+	github.com/shopspring/decimal v1.3.1
+	github.com/takuoki/gocase v1.0.0
 	github.com/vektah/gqlparser/v2 v2.1.0
-	github.com/xuri/excelize/v2 v2.4.1 // indirect
+	github.com/xuri/excelize/v2 v2.4.1
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 )

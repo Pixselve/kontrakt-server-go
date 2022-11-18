@@ -1,0 +1,18 @@
+version: "3.9"
+services:
+  backend:
+    build: .
+    platform: linux/x86_64
+    environment:
+      DATABASE_URL: "postgres://postgres:example@database:5432/postgres"
+      JWT_KEY: "example"
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+  database:
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: example
